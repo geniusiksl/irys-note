@@ -339,6 +339,36 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
             {content || 'Code block'}
           </pre>
         );
+      case 'image':
+        return (
+          <div className="my-4">
+            {content ? (
+              <div className="space-y-2">
+                <img 
+                  src={content} 
+                  alt={block.properties.caption || 'Image'}
+                  className="max-w-full h-auto rounded-lg shadow-sm"
+                />
+                {block.properties.caption && (
+                  <p className="text-sm text-gray-600 italic text-center">
+                    {block.properties.caption}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div 
+                className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${baseClasses}`}
+                onClick={() => setEditingBlock(block.id)}
+              >
+                <div className="text-gray-500">
+                  <Image className="w-12 h-12 mx-auto mb-2" />
+                  <p>Click to add an image</p>
+                  <p className="text-sm">Paste a URL or upload an image</p>
+                </div>
+              </div>
+            )}
+          </div>
+        );
       default:
         return (
           <div className={`${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
