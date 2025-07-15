@@ -201,33 +201,75 @@ const blockTypes = {
 const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEditingBlock }) => {
   const [content, setContent] = useState(block.content);
   const [showBlockMenu, setShowBlockMenu] = useState(false);
+  const [showTypeSelector, setShowTypeSelector] = useState(false);
+  const [typeSelectorPosition, setTypeSelectorPosition] = useState({ x: 0, y: 0 });
   const textareaRef = useRef(null);
   const blockRef = useRef(null);
 
+  useEffect(() => {
+    setContent(block.content);
+  }, [block.content]);
+
+  useEffect(() => {
+    if (isEditing && textareaRef.current) {
+      textareaRef.current.focus();
+      // Auto-resize textarea
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    }
+  }, [isEditing]);
+
   const handleContentChange = (e) => {
-    setContent(e.target.value);
+    const newContent = e.target.value;
+    setContent(newContent);
+    
+    // Auto-resize textarea
+    e.target.style.height = 'auto';
+    e.target.style.height = e.target.scrollHeight + 'px';
+    
+    // Check for slash command
+    if (newContent === '/') {
+      const rect = e.target.getBoundingClientRect();
+      setTypeSelectorPosition({
+        x: rect.left,
+        y: rect.bottom + 5
+      });
+      setShowTypeSelector(true);
+    } else if (showTypeSelector && !newContent.startsWith('/')) {
+      setShowTypeSelector(false);
+    }
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
+      if (showTypeSelector) {
+        setShowTypeSelector(false);
+        return;
+      }
       updateBlock(block.id, { content });
       insertBlock(block.id, 'paragraph');
       setEditingBlock(null);
     }
     if (e.key === 'Escape') {
+      setShowTypeSelector(false);
       setEditingBlock(null);
+    }
+    if (e.key === 'Backspace' && content === '' && block.type !== 'paragraph') {
+      updateBlock(block.id, { type: 'paragraph' });
     }
   };
 
   const handleBlur = () => {
-    updateBlock(block.id, { content });
-    setEditingBlock(null);
+    if (!showTypeSelector) {
+      updateBlock(block.id, { content });
+      setEditingBlock(null);
+    }
   };
 
   const handleBlockTypeChange = (newType) => {
-    updateBlock(block.id, { type: newType });
-    setShowBlockMenu(false);
+    updateBlock(block.id, { type: newType, content: content.replace('/', '') });
+    setShowTypeSelector(false);
   };
 
   const handleTodoToggle = () => {
@@ -239,53 +281,65 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
     });
   };
 
+  const handleClick = () => {
+    setEditingBlock(block.id);
+  };
+
   const renderBlockContent = () => {
     if (isEditing) {
       return (
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={handleContentChange}
-          onKeyDown={handleKeyDown}
-          onBlur={handleBlur}
-          className="w-full bg-transparent border-none outline-none resize-none overflow-hidden"
-          style={{ 
-            minHeight: '1.5rem',
-            fontFamily: 'inherit',
-            fontSize: 'inherit',
-            lineHeight: 'inherit'
-          }}
-          autoFocus
-        />
+        <div className="relative">
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={handleContentChange}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
+            className="w-full bg-transparent border-none outline-none resize-none overflow-hidden min-h-[1.5rem]"
+            style={{ 
+              fontFamily: 'inherit',
+              fontSize: 'inherit',
+              lineHeight: 'inherit'
+            }}
+            placeholder="Type '/' for commands"
+          />
+          {showTypeSelector && (
+            <BlockTypeSelector
+              onSelect={handleBlockTypeChange}
+              onClose={() => setShowTypeSelector(false)}
+              position={typeSelectorPosition}
+            />
+          )}
+        </div>
       );
     }
 
-    const baseClasses = "w-full bg-transparent border-none outline-none cursor-text hover:bg-gray-50 p-1 rounded";
+    const baseClasses = "w-full bg-transparent border-none outline-none cursor-text hover:bg-gray-50 p-1 rounded min-h-[1.5rem]";
     
     switch (block.type) {
       case 'heading1':
         return (
-          <h1 className={`text-3xl font-bold ${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
+          <h1 className={`text-3xl font-bold ${baseClasses}`} onClick={handleClick}>
             {content || 'Heading 1'}
           </h1>
         );
       case 'heading2':
         return (
-          <h2 className={`text-2xl font-bold ${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
+          <h2 className={`text-2xl font-bold ${baseClasses}`} onClick={handleClick}>
             {content || 'Heading 2'}
           </h2>
         );
       case 'heading3':
         return (
-          <h3 className={`text-xl font-bold ${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
+          <h3 className={`text-xl font-bold ${baseClasses}`} onClick={handleClick}>
             {content || 'Heading 3'}
           </h3>
         );
       case 'bulletList':
         return (
           <div className="flex items-start gap-2">
-            <span className="text-gray-400 mt-1">•</span>
-            <div className={`flex-1 ${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
+            <span className="text-gray-400 mt-1 select-none">•</span>
+            <div className={`flex-1 ${baseClasses}`} onClick={handleClick}>
               {content || 'List item'}
             </div>
           </div>
@@ -293,8 +347,8 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
       case 'numberedList':
         return (
           <div className="flex items-start gap-2">
-            <span className="text-gray-400 mt-1">1.</span>
-            <div className={`flex-1 ${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
+            <span className="text-gray-400 mt-1 select-none">1.</span>
+            <div className={`flex-1 ${baseClasses}`} onClick={handleClick}>
               {content || 'List item'}
             </div>
           </div>
@@ -306,11 +360,11 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
               type="checkbox"
               checked={block.properties.checked || false}
               onChange={handleTodoToggle}
-              className="mt-1 text-blue-600 focus:ring-blue-500"
+              className="mt-1 text-blue-600 focus:ring-blue-500 cursor-pointer"
             />
             <div 
               className={`flex-1 ${baseClasses} ${block.properties.checked ? 'line-through text-gray-500' : ''}`}
-              onClick={() => setEditingBlock(block.id)}
+              onClick={handleClick}
             >
               {content || 'To-do item'}
             </div>
@@ -318,7 +372,7 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         );
       case 'quote':
         return (
-          <blockquote className={`border-l-4 border-gray-300 pl-4 italic ${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
+          <blockquote className={`border-l-4 border-gray-300 pl-4 italic ${baseClasses}`} onClick={handleClick}>
             {content || 'Quote'}
           </blockquote>
         );
@@ -326,16 +380,16 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         return <hr className="my-4 border-gray-300" />;
       case 'callout':
         return (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-            <span className="text-xl">{block.properties.emoji || '💡'}</span>
-            <div className={`flex-1 ${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3 my-2">
+            <span className="text-xl select-none">{block.properties.emoji || '💡'}</span>
+            <div className={`flex-1 ${baseClasses}`} onClick={handleClick}>
               {content || 'Callout text'}
             </div>
           </div>
         );
       case 'code':
         return (
-          <pre className={`bg-gray-100 border border-gray-200 rounded-lg p-4 font-mono text-sm overflow-x-auto ${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
+          <pre className={`bg-gray-100 border border-gray-200 rounded-lg p-4 font-mono text-sm overflow-x-auto ${baseClasses}`} onClick={handleClick}>
             {content || 'Code block'}
           </pre>
         );
@@ -348,7 +402,19 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
                   src={content} 
                   alt={block.properties.caption || 'Image'}
                   className="max-w-full h-auto rounded-lg shadow-sm"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'block';
+                  }}
                 />
+                <div 
+                  className="hidden border-2 border-dashed border-red-300 rounded-lg p-4 text-center text-red-600"
+                  onClick={handleClick}
+                >
+                  <Image className="w-8 h-8 mx-auto mb-2" />
+                  <p className="text-sm">Failed to load image</p>
+                  <p className="text-xs">Click to edit URL</p>
+                </div>
                 {block.properties.caption && (
                   <p className="text-sm text-gray-600 italic text-center">
                     {block.properties.caption}
@@ -358,7 +424,7 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
             ) : (
               <div 
                 className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${baseClasses}`}
-                onClick={() => setEditingBlock(block.id)}
+                onClick={handleClick}
               >
                 <div className="text-gray-500">
                   <Image className="w-12 h-12 mx-auto mb-2" />
@@ -371,8 +437,8 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         );
       default:
         return (
-          <div className={`${baseClasses}`} onClick={() => setEditingBlock(block.id)}>
-            {content || 'Type \'/\' for commands'}
+          <div className={`${baseClasses}`} onClick={handleClick}>
+            {content || "Type '/' for commands"}
           </div>
         );
     }
@@ -386,12 +452,16 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
       onMouseLeave={() => setShowBlockMenu(false)}
     >
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button className="p-1 hover:bg-gray-200 rounded">
+        <button 
+          className="p-1 hover:bg-gray-200 rounded"
+          title="Drag to reorder"
+        >
           <GripVertical className="w-4 h-4 text-gray-400" />
         </button>
         <button 
           className="p-1 hover:bg-gray-200 rounded"
           onClick={() => insertBlock(block.id, 'paragraph')}
+          title="Add block below"
         >
           <Plus className="w-4 h-4 text-gray-400" />
         </button>
@@ -406,6 +476,7 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
           <button 
             className="p-1 hover:bg-gray-200 rounded"
             onClick={() => deleteBlock(block.id)}
+            title="Delete block"
           >
             <Trash2 className="w-4 h-4 text-gray-400" />
           </button>
