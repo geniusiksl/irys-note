@@ -656,19 +656,47 @@ const PageEditor = ({ page, onPageUpdate }) => {
   const [showBlockSelector, setShowBlockSelector] = useState(false);
   const [blockSelectorPosition, setBlockSelectorPosition] = useState({ x: 0, y: 0 });
   const [currentBlocks, setCurrentBlocks] = useState(page.blocks || []);
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'error'
+  const [lastSaved, setLastSaved] = useState(null);
+
+  // Auto-save functionality
+  useEffect(() => {
+    const saveToIrys = async () => {
+      if (saveStatus === 'saving') return;
+      
+      setSaveStatus('saving');
+      try {
+        const result = await irysService.savePage(page);
+        console.log('Page saved to Irys:', result);
+        setSaveStatus('saved');
+        setLastSaved(new Date().toLocaleTimeString());
+      } catch (error) {
+        console.error('Failed to save to Irys:', error);
+        setSaveStatus('error');
+      }
+    };
+
+    // Auto-save every 5 seconds when there are changes
+    const saveTimeout = setTimeout(saveToIrys, 5000);
+    return () => clearTimeout(saveTimeout);
+  }, [page, saveStatus]);
 
   const updateBlock = (blockId, updates) => {
     const newBlocks = currentBlocks.map(block => 
       block.id === blockId ? { ...block, ...updates } : block
     );
     setCurrentBlocks(newBlocks);
-    onPageUpdate({ ...page, blocks: newBlocks });
+    const updatedPage = { ...page, blocks: newBlocks };
+    onPageUpdate(updatedPage);
+    setSaveStatus('unsaved');
   };
 
   const deleteBlock = (blockId) => {
     const newBlocks = currentBlocks.filter(block => block.id !== blockId);
     setCurrentBlocks(newBlocks);
-    onPageUpdate({ ...page, blocks: newBlocks });
+    const updatedPage = { ...page, blocks: newBlocks };
+    onPageUpdate(updatedPage);
+    setSaveStatus('unsaved');
   };
 
   const insertBlock = (afterBlockId, type = 'paragraph') => {
@@ -687,12 +715,16 @@ const PageEditor = ({ page, onPageUpdate }) => {
     ];
     
     setCurrentBlocks(newBlocks);
-    onPageUpdate({ ...page, blocks: newBlocks });
+    const updatedPage = { ...page, blocks: newBlocks };
+    onPageUpdate(updatedPage);
     setEditingBlock(newBlock.id);
+    setSaveStatus('unsaved');
   };
 
   const handlePageTitleChange = (e) => {
-    onPageUpdate({ ...page, title: e.target.value });
+    const updatedPage = { ...page, title: e.target.value };
+    onPageUpdate(updatedPage);
+    setSaveStatus('unsaved');
   };
 
   const handleBlockTypeSelect = (blockType) => {
@@ -702,11 +734,56 @@ const PageEditor = ({ page, onPageUpdate }) => {
     setShowBlockSelector(false);
   };
 
+  const handleManualSave = async () => {
+    setSaveStatus('saving');
+    try {
+      const result = await irysService.savePage(page);
+      console.log('Page manually saved to Irys:', result);
+      setSaveStatus('saved');
+      setLastSaved(new Date().toLocaleTimeString());
+    } catch (error) {
+      console.error('Failed to save to Irys:', error);
+      setSaveStatus('error');
+    }
+  };
+
   return (
     <div className="flex-1 bg-white">
       {/* Page Header */}
       <div className="border-b border-gray-200 p-6">
         <div className="max-w-4xl mx-auto">
+          {/* Save Status Bar */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className={`w-2 h-2 rounded-full ${
+                saveStatus === 'saved' ? 'bg-green-500' : 
+                saveStatus === 'saving' ? 'bg-yellow-500' : 
+                saveStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
+              }`}></div>
+              <span>
+                {saveStatus === 'saved' && lastSaved ? `Saved at ${lastSaved}` :
+                 saveStatus === 'saving' ? 'Saving to Irys...' :
+                 saveStatus === 'error' ? 'Save failed' : 'Unsaved changes'}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleManualSave}
+                disabled={saveStatus === 'saving'}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+              >
+                <Cloud className={`w-4 h-4 ${saveStatus === 'saving' ? 'animate-spin' : ''}`} />
+                {saveStatus === 'saving' ? 'Saving...' : 'Save to Irys'}
+              </button>
+              
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <Zap className="w-3 h-3" />
+                <span>Auto-save enabled</span>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-4 mb-4">
             <span className="text-4xl">{page.icon}</span>
             <input
