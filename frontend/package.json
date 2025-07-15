@@ -3,8 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@irys/upload": "^0.0.15",
-    "@irys/upload-ethereum": "^0.0.16",
     "assert": "^2.1.0",
     "axios": "^1.8.4",
     "buffer": "^6.0.3",
