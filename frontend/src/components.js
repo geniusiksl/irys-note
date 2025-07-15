@@ -848,6 +848,59 @@ export const NotionClone = () => {
   const [pages, setPages] = useState(mockPages);
   const [currentPageId, setCurrentPageId] = useState(pageId || 'home');
   const [currentPage, setCurrentPage] = useState(pages[currentPageId] || pages.home);
+  const [loading, setLoading] = useState(true);
+
+  // Initialize and load data from Irys
+  useEffect(() => {
+    const initializeWorkspace = async () => {
+      try {
+        // Try to load existing workspace data
+        const savedWorkspace = await irysService.loadWorkspace('main-workspace');
+        if (savedWorkspace) {
+          setWorkspace(savedWorkspace);
+        }
+
+        // Load all pages
+        const savedPages = {};
+        for (const page of mockWorkspace.pages) {
+          try {
+            const savedPage = await irysService.loadPage(page.id);
+            if (savedPage) {
+              savedPages[page.id] = savedPage;
+            } else {
+              savedPages[page.id] = mockPages[page.id];
+            }
+          } catch (error) {
+            console.error(`Failed to load page ${page.id}:`, error);
+            savedPages[page.id] = mockPages[page.id];
+          }
+        }
+        
+        setPages(savedPages);
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to initialize workspace:', error);
+        setLoading(false);
+      }
+    };
+
+    initializeWorkspace();
+  }, []);
+
+  // Auto-save workspace changes
+  useEffect(() => {
+    const saveWorkspace = async () => {
+      try {
+        await irysService.saveWorkspace(workspace);
+        console.log('Workspace saved to Irys');
+      } catch (error) {
+        console.error('Failed to save workspace:', error);
+      }
+    };
+
+    const saveTimeout = setTimeout(saveWorkspace, 3000);
+    return () => clearTimeout(saveTimeout);
+  }, [workspace]);
 
   useEffect(() => {
     if (pageId && pages[pageId]) {
@@ -902,6 +955,21 @@ export const NotionClone = () => {
       )
     }));
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">Loading your workspace...</p>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Cloud className="w-4 h-4" />
+            <span>Connecting to Irys Network</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-white">
