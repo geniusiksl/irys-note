@@ -94,8 +94,14 @@ const mockPages = {
       {
         id: 'b9',
         type: 'callout',
-        content: 'All your data is stored securely on the Irys network - a decentralized, permanent storage solution.',
-        properties: { emoji: '💡' }
+        content: 'All your data is stored securely on the Irys network - a decentralized, permanent storage solution. Your content is immutable and accessible anywhere.',
+        properties: { emoji: '🔐' }
+      },
+      {
+        id: 'b10',
+        type: 'image',
+        content: 'https://images.unsplash.com/photo-1555212697-194d092e3b8f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwyfHxwcm9kdWN0aXZpdHklMjB3b3Jrc3BhY2V8ZW58MHx8fGJsdWV8MTc1MjU4ODE4N3ww&ixlib=rb-4.1.0&q=85',
+        properties: { caption: 'Clean, organized workspace - just like your Notion clone' }
       }
     ]
   },
