@@ -459,6 +459,25 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
 const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
   const [expandedPages, setExpandedPages] = useState(new Set());
   const [searchTerm, setSearchTerm] = useState('');
+  const [irysStatus, setIrysStatus] = useState('ready');
+  const [storageStats, setStorageStats] = useState(null);
+
+  // Check Irys status
+  useEffect(() => {
+    const checkIrysStatus = async () => {
+      const isReady = irysService.isReady();
+      setIrysStatus(isReady ? 'ready' : 'connecting');
+      
+      if (isReady) {
+        const stats = await irysService.getStorageStats();
+        setStorageStats(stats);
+      }
+    };
+    
+    checkIrysStatus();
+    const interval = setInterval(checkIrysStatus, 30000); // Check every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleExpanded = (pageId) => {
     const newExpanded = new Set(expandedPages);
@@ -473,6 +492,13 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
   const filteredPages = workspace.pages.filter(page =>
     page.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleSyncData = async () => {
+    setIrysStatus('syncing');
+    // Mock sync process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setIrysStatus('ready');
+  };
 
   return (
     <div className="w-64 bg-gray-50 border-r border-gray-200 h-screen flex flex-col">
@@ -498,6 +524,46 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
         </div>
       </div>
 
+      {/* Irys Status */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${
+              irysStatus === 'ready' ? 'bg-green-500' : 
+              irysStatus === 'syncing' ? 'bg-yellow-500' : 'bg-red-500'
+            }`}></div>
+            <span className="text-xs font-medium text-gray-600">
+              Irys Network
+            </span>
+          </div>
+          <button
+            onClick={handleSyncData}
+            className="ml-auto p-1 hover:bg-gray-200 rounded"
+            disabled={irysStatus === 'syncing'}
+          >
+            <Cloud className={`w-4 h-4 text-gray-400 ${irysStatus === 'syncing' ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+        
+        {storageStats && (
+          <div className="text-xs text-gray-500 space-y-1">
+            <div className="flex justify-between">
+              <span>Items:</span>
+              <span>{storageStats.totalItems}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Size:</span>
+              <span>{storageStats.totalSize}</span>
+            </div>
+          </div>
+        )}
+        
+        <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+          <Shield className="w-3 h-3" />
+          <span>Decentralized Storage</span>
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="p-4 border-b border-gray-200">
         <div className="space-y-1">
@@ -512,6 +578,10 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
           <button className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg text-left text-sm">
             <Clock className="w-4 h-4" />
             <span>Recent</span>
+          </button>
+          <button className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg text-left text-sm">
+            <Database className="w-4 h-4" />
+            <span>Templates</span>
           </button>
         </div>
       </div>
