@@ -21,11 +21,14 @@ module.exports = {
         "stream": require.resolve("stream-browserify"),
         "buffer": require.resolve("buffer"),
         "process": require.resolve("process/browser"),
-        "fs": require.resolve("fs-extra"),
+        "fs": false,
         "tty": require.resolve("tty-browserify"),
         "assert": require.resolve("assert"),
         "path": require.resolve("path-browserify"),
         "child_process": false,
+        "constants": require.resolve("constants-browserify"),
+        "os": require.resolve("os-browserify"),
+        "readline": false,
       };
       
       // Disable hot reload completely if environment variable is set
