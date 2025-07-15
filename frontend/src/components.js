@@ -193,7 +193,8 @@ const blockTypes = {
   quote: { icon: '"', label: 'Quote', description: 'Capture a quote.' },
   divider: { icon: '—', label: 'Divider', description: 'Visually divide blocks.' },
   callout: { icon: '💡', label: 'Callout', description: 'Make writing stand out.' },
-  code: { icon: '{  }', label: 'Code', description: 'Capture a code snippet.' }
+  code: { icon: '{  }', label: 'Code', description: 'Capture a code snippet.' },
+  image: { icon: '🖼️', label: 'Image', description: 'Upload or embed an image.' }
 };
 
 // Individual Block Component
