@@ -26,9 +26,14 @@ import {
   Clock,
   User,
   Home,
-  Edit3
+  Edit3,
+  Database,
+  Cloud,
+  Shield,
+  Zap
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { irysService } from './irysService';
 
 // Mock data for the Notion clone
 const mockPages = {
