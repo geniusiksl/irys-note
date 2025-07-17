@@ -263,6 +263,113 @@ const blockTypes = {
   image: { icon: '🖼️', label: 'Image', description: 'Upload or embed an image.' }
 };
 
+// Wallet Connection Modal Component
+const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleConnectWallet = async () => {
+    setIsConnecting(true);
+    setError('');
+    
+    try {
+      const result = await irysService.connectWallet();
+      if (result.success) {
+        onConnect(result.address);
+        onClose();
+      } else {
+        setError(result.error || 'Failed to connect wallet');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to connect wallet');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-800">Connect Wallet</h2>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <Wallet className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-medium text-gray-800">Irys Decentralized Storage</h3>
+              <p className="text-sm text-gray-600">Connect your wallet to store data permanently</p>
+            </div>
+          </div>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-blue-800 mb-1">Why connect your wallet?</h4>
+                <ul className="text-sm text-blue-700 space-y-1">
+                  <li>• Permanent, immutable storage on Irys network</li>
+                  <li>• Your data is accessible from anywhere</li>
+                  <li>• No central authority can delete your content</li>
+                  <li>• Cryptographically secured with your wallet</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+        </div>
+        
+        <div className="space-y-3">
+          <button
+            onClick={handleConnectWallet}
+            disabled={isConnecting}
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {isConnecting ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Connecting...</span>
+              </>
+            ) : (
+              <>
+                <Wallet className="w-5 h-5" />
+                <span>Connect MetaMask</span>
+              </>
+            )}
+          </button>
+          
+          <button
+            onClick={onClose}
+            className="w-full text-gray-600 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            Continue without wallet (localStorage only)
+          </button>
+        </div>
+        
+        <div className="mt-4 text-xs text-gray-500 text-center">
+          <p>By connecting your wallet, you agree to store data on the Irys network.</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Individual Block Component
 const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEditingBlock }) => {
   const [content, setContent] = useState(block.content);
