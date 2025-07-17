@@ -1,8 +1,14 @@
+import { ethers } from 'ethers';
+
 // Browser-compatible IrysSDK Service for decentralized data storage
 class IrysService {
   constructor() {
     this.initialized = false;
     this.storageKey = 'notion-irys-data';
+    this.walletConnected = false;
+    this.walletAddress = null;
+    this.provider = null;
+    this.signer = null;
     this.init();
   }
 
@@ -14,7 +20,8 @@ class IrysService {
         localStorage.setItem(this.storageKey, JSON.stringify({
           pages: {},
           workspace: null,
-          uploads: {}
+          uploads: {},
+          projects: {}
         }));
       }
       
@@ -28,14 +35,59 @@ class IrysService {
     }
   }
 
+  // Connect wallet for Irys storage
+  async connectWallet() {
+    try {
+      if (typeof window.ethereum !== 'undefined') {
+        this.provider = new ethers.BrowserProvider(window.ethereum);
+        await window.ethereum.request({ method: 'eth_requestAccounts' });
+        
+        this.signer = await this.provider.getSigner();
+        this.walletAddress = await this.signer.getAddress();
+        this.walletConnected = true;
+        
+        console.log('IrysSDK: Wallet connected:', this.walletAddress);
+        return {
+          success: true,
+          address: this.walletAddress
+        };
+      } else {
+        throw new Error('MetaMask not found');
+      }
+    } catch (error) {
+      console.error('IrysSDK: Wallet connection failed:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Disconnect wallet
+  async disconnectWallet() {
+    this.walletConnected = false;
+    this.walletAddress = null;
+    this.provider = null;
+    this.signer = null;
+    console.log('IrysSDK: Wallet disconnected');
+  }
+
+  // Get wallet connection status
+  getWalletStatus() {
+    return {
+      connected: this.walletConnected,
+      address: this.walletAddress
+    };
+  }
+
   // Get data from localStorage
   getStorageData() {
     try {
       const data = localStorage.getItem(this.storageKey);
-      return data ? JSON.parse(data) : { pages: {}, workspace: null, uploads: {} };
+      return data ? JSON.parse(data) : { pages: {}, workspace: null, uploads: {}, projects: {} };
     } catch (error) {
       console.error('IrysSDK: Failed to get storage data:', error);
-      return { pages: {}, workspace: null, uploads: {} };
+      return { pages: {}, workspace: null, uploads: {}, projects: {} };
     }
   }
 
@@ -63,7 +115,9 @@ class IrysService {
         id: mockId,
         url: `https://gateway.irys.xyz/${mockId}`,
         timestamp: Date.now(),
-        data: data
+        data: data,
+        walletAddress: this.walletAddress,
+        isDecentralized: this.walletConnected
       };
       
       // Store in localStorage
@@ -74,7 +128,7 @@ class IrysService {
       console.log('IrysSDK: Mock upload successful:', result);
       
       // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, this.walletConnected ? 1000 : 200));
       
       return result;
     } catch (error) {
@@ -103,6 +157,62 @@ class IrysService {
     } catch (error) {
       console.error('IrysSDK: Retrieval failed:', error);
       return null;
+    }
+  }
+
+  // Save project data
+  async saveProject(projectData) {
+    try {
+      const result = await this.uploadData({
+        type: 'project',
+        data: projectData,
+        version: '1.0'
+      });
+      
+      // Also store in dedicated projects storage
+      const storageData = this.getStorageData();
+      storageData.projects[projectData.id] = {
+        uploadId: result.id,
+        data: projectData,
+        lastSaved: result.timestamp
+      };
+      this.setStorageData(storageData);
+      
+      return result;
+    } catch (error) {
+      console.error('IrysSDK: Failed to save project:', error);
+      throw error;
+    }
+  }
+
+  // Load project data
+  async loadProject(projectId) {
+    try {
+      const storageData = this.getStorageData();
+      const projectInfo = storageData.projects[projectId];
+      
+      if (projectInfo) {
+        console.log('IrysSDK: Project loaded from storage:', projectId);
+        return projectInfo.data;
+      } else {
+        console.warn('IrysSDK: Project not found in storage:', projectId);
+        return null;
+      }
+    } catch (error) {
+      console.error('IrysSDK: Failed to load project:', error);
+      return null;
+    }
+  }
+
+  // Get all projects
+  async getAllProjects() {
+    try {
+      const storageData = this.getStorageData();
+      const projects = Object.values(storageData.projects).map(project => project.data);
+      return projects;
+    } catch (error) {
+      console.error('IrysSDK: Failed to get all projects:', error);
+      return [];
     }
   }
 
@@ -219,6 +329,7 @@ class IrysService {
     const storageData = this.getStorageData();
     const uploadCount = Object.keys(storageData.uploads).length;
     const pageCount = Object.keys(storageData.pages).length;
+    const projectCount = Object.keys(storageData.projects).length;
     
     // Calculate approximate storage size
     const dataSize = new Blob([JSON.stringify(storageData)]).size;
@@ -227,8 +338,10 @@ class IrysService {
     return {
       totalItems: uploadCount,
       totalPages: pageCount,
+      totalProjects: projectCount,
       totalSize: sizeInKB > 1024 ? `${Math.round(sizeInKB / 1024)}MB` : `${sizeInKB}KB`,
-      lastSync: Date.now()
+      lastSync: Date.now(),
+      isDecentralized: this.walletConnected
     };
   }
 
@@ -251,7 +364,8 @@ class IrysService {
     return {
       ...storageData,
       exportDate: new Date().toISOString(),
-      version: '1.0'
+      version: '1.0',
+      walletAddress: this.walletAddress
     };
   }
 
@@ -259,7 +373,7 @@ class IrysService {
   async importData(importData) {
     try {
       if (importData.version === '1.0') {
-        const { exportDate, version, ...data } = importData;
+        const { exportDate, version, walletAddress, ...data } = importData;
         this.setStorageData(data);
         console.log('IrysSDK: Data imported successfully');
         return true;
