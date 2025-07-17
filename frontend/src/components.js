@@ -30,7 +30,18 @@ import {
   Database,
   Cloud,
   Shield,
-  Zap
+  Zap,
+  Wallet,
+  X,
+  FolderPlus,
+  Folder,
+  BookOpen,
+  Heart,
+  Archive,
+  Layout,
+  Sparkles,
+  ChevronLeft,
+  Menu
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { irysService } from './irysService';
