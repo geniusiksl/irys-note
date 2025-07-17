@@ -1,6 +1,6 @@
 // Load configuration from environment or config file
 const path = require('path');
-
+const webpack = require('webpack');
 // Environment variable overrides
 const config = {
   disableHotReload: process.env.DISABLE_HOT_RELOAD === 'true',
@@ -20,7 +20,7 @@ module.exports = {
         "crypto": require.resolve("crypto-browserify"),
         "stream": require.resolve("stream-browserify"),
         "buffer": require.resolve("buffer"),
-        "process": require.resolve("process/browser"),
+        "process": require.resolve("process/browser.js"),
         "fs": false,
         "tty": require.resolve("tty-browserify"),
         "assert": require.resolve("assert"),
@@ -34,15 +34,13 @@ module.exports = {
       // Disable hot reload completely if environment variable is set
       if (config.disableHotReload) {
         // Remove hot reload related plugins
-        webpackConfig.plugins = webpackConfig.plugins.filter(plugin => {
-          return !(plugin.constructor.name === 'HotModuleReplacementPlugin');
-        });
-        
-        // Disable watch mode
-        webpackConfig.watch = false;
-        webpackConfig.watchOptions = {
-          ignored: /.*/, // Ignore all files
-        };
+        webpackConfig.plugins = [
+          ...(webpackConfig.plugins || []),
+          new webpack.ProvidePlugin({
+            Buffer: ['buffer', 'Buffer'],
+            process: 'process/browser.js', // <-- добавьте .js!
+          }),
+        ];
       } else {
         // Add ignored patterns to reduce watched directories
         webpackConfig.watchOptions = {
@@ -57,7 +55,6 @@ module.exports = {
           ],
         };
       }
-      
       return webpackConfig;
     },
   },

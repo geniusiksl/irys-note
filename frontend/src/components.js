@@ -12,7 +12,7 @@ import {
   Underline,
   Code,
   Link,
-  Image,
+  Image as ImageIcon,
   List,
   CheckSquare,
   Quote,
@@ -45,6 +45,75 @@ import {
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { irysService } from './irysService';
+
+
+// ImageBlock Component
+const ImageBlock = ({ src, caption, onError, onClick }) => {
+  const [imageError, setImageError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  const handleImageError = () => {
+    if (retryCount < 3) {
+      setRetryCount(retryCount + 1);
+      // Retry loading the image
+      const img = new Image();
+      img.onload = () => setImageError(false);
+      img.onerror = () => setImageError(true);
+      img.src = src;
+    } else {
+      setImageError(true);
+      if (onError) onError();
+    }
+  };
+
+  if (imageError) {
+    return (
+      <div className="flex items-center justify-center p-8 border-2 border-dashed border-red-300 rounded-lg">
+        <div className="text-center">
+          <div className="w-8 h-8 mx-auto mb-2 text-red-500 flex items-center justify-center text-2xl">
+            🖼️
+          </div>
+          <p className="text-red-600 mb-2">Failed to load image</p>
+          <button
+            onClick={() => {
+              setRetryCount(0);
+              setImageError(false);
+            }}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 mr-2"
+          >
+            Retry
+          </button>
+          <button
+            onClick={onClick}
+            className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+          >
+            Edit URL
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="my-4">
+      <div className="space-y-2">
+        <img 
+          src={src} 
+          alt={caption || 'Image'}
+          className="max-w-full h-auto rounded-lg shadow-sm cursor-pointer"
+          onError={handleImageError}
+          onClick={onClick}
+          draggable="false"
+        />
+        {caption && (
+          <p className="text-sm text-gray-600 italic text-center">
+            {caption}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // Mock data for the Notion clone
 const mockProjects = {
@@ -84,19 +153,19 @@ const mockPages = {
       {
         id: 'b1',
         type: 'heading1',
-        content: 'Welcome to Notion Clone',
+        content: 'Welcome to the IrysNote', // ИЗМЕНИТЬ ЗДЕСЬ
         properties: {}
       },
       {
         id: 'b2',
         type: 'paragraph',
-        content: 'This is a Notion clone built with React and IrysSDK for decentralized data storage.',
+        content: 'This is a Note built with React and IrysSDK for decentralized data storage.', // ИЗМЕНИТЬ ЗДЕСЬ
         properties: {}
       },
       {
         id: 'b3',
         type: 'heading2',
-        content: 'Key Features',
+        content: 'Key Features', // ИЗМЕНИТЬ ЗДЕСЬ
         properties: {}
       },
       {
@@ -139,7 +208,7 @@ const mockPages = {
         id: 'b10',
         type: 'image',
         content: 'https://images.unsplash.com/photo-1555212697-194d092e3b8f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1NzZ8MHwxfHNlYXJjaHwyfHxwcm9kdWN0aXZpdHklMjB3b3Jrc3BhY2V8ZW58MHx8fGJsdWV8MTc1MjU4ODE4N3ww&ixlib=rb-4.1.0&q=85',
-        properties: { caption: 'Clean, organized workspace - just like your Notion clone' }
+        properties: { caption: 'Clean, organized workspace - just like your Note on Irys' }
       }
     ]
   },
@@ -349,7 +418,7 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
             ) : (
               <>
                 <Wallet className="w-5 h-5" />
-                <span>Connect MetaMask</span>
+                <span>Connect OKX</span>
               </>
             )}
           </button>
@@ -371,7 +440,7 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
 };
 
 // Individual Block Component
-const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEditingBlock }) => {
+const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEditingBlock, onDragStart, onDragOver, onDrop, index }) => {
   const [content, setContent] = useState(block.content);
   const [showBlockMenu, setShowBlockMenu] = useState(false);
   const [showTypeSelector, setShowTypeSelector] = useState(false);
@@ -408,6 +477,20 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         y: rect.bottom + 5
       });
       setShowTypeSelector(true);
+    } else if (newContent.startsWith('/image')) {
+      // Handle image command
+      const imageUrl = prompt('Enter image URL:');
+      if (imageUrl) {
+        updateBlock(block.id, { type: 'image', content: imageUrl });
+      } else {
+        // If user cancels, keep the /image text for editing
+        setContent('/image');
+      }
+      setShowTypeSelector(false);
+    } else if (newContent.startsWith('http') && (newContent.includes('.jpg') || newContent.includes('.jpeg') || newContent.includes('.png') || newContent.includes('.gif') || newContent.includes('.webp'))) {
+      // Auto-detect image URLs
+      updateBlock(block.id, { type: 'image', content: newContent });
+      setShowTypeSelector(false);
     } else if (showTypeSelector && !newContent.startsWith('/')) {
       setShowTypeSelector(false);
     }
@@ -420,6 +503,11 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         setShowTypeSelector(false);
         return;
       }
+      // Don't create new block for image type
+      if (block.type === 'image') {
+        setEditingBlock(null);
+        return;
+      }
       updateBlock(block.id, { content });
       insertBlock(block.id, 'paragraph');
       setEditingBlock(null);
@@ -430,6 +518,14 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
     }
     if (e.key === 'Backspace' && content === '' && block.type !== 'paragraph') {
       updateBlock(block.id, { type: 'paragraph' });
+    }
+  };
+
+  const handlePaste = (e) => {
+    const pastedText = e.clipboardData.getData('text');
+    if (pastedText.startsWith('http') && (pastedText.includes('.jpg') || pastedText.includes('.jpeg') || pastedText.includes('.png') || pastedText.includes('.gif') || pastedText.includes('.webp'))) {
+      e.preventDefault();
+      updateBlock(block.id, { type: 'image', content: pastedText });
     }
   };
 
@@ -458,6 +554,30 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
     setEditingBlock(block.id);
   };
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('text/plain', block.id);
+    e.dataTransfer.effectAllowed = 'move';
+    if (onDragStart) onDragStart(block.id, index);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (onDragOver) onDragOver(e, index);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const draggedBlockId = e.dataTransfer.getData('text/plain');
+    if (onDrop && draggedBlockId !== block.id) {
+      onDrop(e, draggedBlockId, index);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.currentTarget.style.borderTop = '';
+  };
+
   const renderBlockContent = () => {
     if (isEditing) {
       return (
@@ -467,6 +587,7 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
             value={content}
             onChange={handleContentChange}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             onBlur={handleBlur}
             className="w-full bg-transparent border-none outline-none resize-none overflow-hidden min-h-[1.5rem]"
             style={{ 
@@ -487,24 +608,24 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
       );
     }
 
-    const baseClasses = "w-full bg-transparent border-none outline-none cursor-text hover:bg-gray-50 p-1 rounded min-h-[1.5rem]";
+    const baseClasses = "w-full bg-transparent border-none outline-none cursor-text hover:bg-blue-50 p-1 rounded min-h-[1.5rem] transition-colors";
     
     switch (block.type) {
       case 'heading1':
         return (
-          <h1 className={`text-3xl font-bold ${baseClasses}`} onClick={handleClick}>
-            {content || 'Heading 1'}
+          <h1 className={`text-3xl font-bold ${baseClasses} break-words`} onClick={handleClick} title="Click to edit block" style={{ wordBreak: 'break-word', overflow: 'visible' }}>
+            {content || <span className="text-gray-400">Click to edit heading</span>}
           </h1>
         );
       case 'heading2':
         return (
-          <h2 className={`text-2xl font-bold ${baseClasses}`} onClick={handleClick}>
+          <h2 className={`text-2xl font-bold ${baseClasses} break-words`} onClick={handleClick} style={{ wordBreak: 'break-word', overflow: 'visible' }}>
             {content || 'Heading 2'}
           </h2>
         );
       case 'heading3':
         return (
-          <h3 className={`text-xl font-bold ${baseClasses}`} onClick={handleClick}>
+          <h3 className={`text-xl font-bold ${baseClasses} break-words`} onClick={handleClick} style={{ wordBreak: 'break-word', overflow: 'visible' }}>
             {content || 'Heading 3'}
           </h3>
         );
@@ -567,51 +688,36 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
           </pre>
         );
       case 'image':
-        return (
-          <div className="my-4">
-            {content ? (
-              <div className="space-y-2">
-                <img 
-                  src={content} 
-                  alt={block.properties.caption || 'Image'}
-                  className="max-w-full h-auto rounded-lg shadow-sm"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                    e.target.nextSibling.style.display = 'block';
-                  }}
-                />
-                <div 
-                  className="hidden border-2 border-dashed border-red-300 rounded-lg p-4 text-center text-red-600"
-                  onClick={handleClick}
-                >
-                  <Image className="w-8 h-8 mx-auto mb-2" />
-                  <p className="text-sm">Failed to load image</p>
-                  <p className="text-xs">Click to edit URL</p>
+        return content ? (
+          <ImageBlock
+            src={content}
+            caption={block.properties.caption}
+            onError={() => {
+              const newUrl = prompt('Image failed to load. Enter new URL:');
+              if (newUrl) {
+                updateBlock(block.id, { content: newUrl });
+              }
+            }}
+            onClick={handleClick}
+          />
+        ) : (
+          <div 
+            className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${baseClasses}`}
+            onClick={handleClick}
+          >
+                          <div className="text-gray-500">
+                <div className="w-12 h-12 mx-auto mb-2 text-4xl flex items-center justify-center">
+                  🖼️
                 </div>
-                {block.properties.caption && (
-                  <p className="text-sm text-gray-600 italic text-center">
-                    {block.properties.caption}
-                  </p>
-                )}
+                <p>Click to add an image</p>
+                <p className="text-sm">Type /image or paste a URL</p>
               </div>
-            ) : (
-              <div 
-                className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${baseClasses}`}
-                onClick={handleClick}
-              >
-                <div className="text-gray-500">
-                  <Image className="w-12 h-12 mx-auto mb-2" />
-                  <p>Click to add an image</p>
-                  <p className="text-sm">Paste a URL or upload an image</p>
-                </div>
-              </div>
-            )}
           </div>
         );
       default:
         return (
-          <div className={`${baseClasses}`} onClick={handleClick}>
-            {content || "Type '/' for commands"}
+          <div className={`${baseClasses}`} onClick={handleClick} title="Click to edit block">
+            {content || <span className="text-gray-400">Type '/' for commands or click to edit</span>}
           </div>
         );
     }
@@ -623,11 +729,17 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
       className="group relative flex items-start gap-2 py-1 hover:bg-gray-50 rounded"
       onMouseEnter={() => setShowBlockMenu(true)}
       onMouseLeave={() => setShowBlockMenu(false)}
+      draggable
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onDragLeave={handleDragLeave}
     >
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button 
-          className="p-1 hover:bg-gray-200 rounded"
+          className="p-1 hover:bg-gray-200 rounded cursor-grab active:cursor-grabbing"
           title="Drag to reorder"
+          // drag handled by parent div
         >
           <GripVertical className="w-4 h-4 text-gray-400" />
         </button>
@@ -666,7 +778,8 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
   
   const filteredTypes = Object.entries(blockTypes).filter(([key, config]) =>
     config.label.toLowerCase().includes(filter.toLowerCase()) ||
-    config.description.toLowerCase().includes(filter.toLowerCase())
+    config.description.toLowerCase().includes(filter.toLowerCase()) ||
+    key === 'image' // Always show image option
   );
 
   useEffect(() => {
@@ -734,13 +847,15 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
 };
 
 // Sidebar Component
-const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange }) => {
+const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange, onProjectUpdate, onProjectDelete, pages, onWalletDisconnect, walletStatus, onProjectSelect }) => {
   const [expandedProjects, setExpandedProjects] = useState(new Set(['personal', 'work']));
   const [searchTerm, setSearchTerm] = useState('');
   const [irysStatus, setIrysStatus] = useState('ready');
   const [storageStats, setStorageStats] = useState(null);
-  const [walletStatus, setWalletStatus] = useState(null);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [editingProject, setEditingProject] = useState(null);
+  const [editingProjectName, setEditingProjectName] = useState('');
+  const [editingProjectIcon, setEditingProjectIcon] = useState('');
 
   // Check Irys status
   useEffect(() => {
@@ -751,7 +866,6 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
       if (isReady) {
         const stats = await irysService.getStorageStats();
         setStorageStats(stats);
-        setWalletStatus(irysService.getWalletStatus());
       }
     };
     
@@ -770,6 +884,46 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
     setExpandedProjects(newExpanded);
   };
 
+  const handleProjectEdit = (project) => {
+    setEditingProject(project.id);
+    setEditingProjectName(project.name);
+    // Убираем редактирование иконки
+    setEditingProjectIcon(project.icon);
+  };
+
+  const handleProjectSave = () => {
+    if (editingProject && onProjectUpdate) {
+      const updatedProject = {
+        ...workspace.projects[editingProject],
+        name: editingProjectName,
+        // Оставляем оригинальную иконку
+        icon: workspace.projects[editingProject].icon
+      };
+      onProjectUpdate(editingProject, updatedProject);
+    }
+    setEditingProject(null);
+    setEditingProjectName('');
+    setEditingProjectIcon('');
+  };
+
+  const handleProjectCancel = () => {
+    setEditingProject(null);
+    setEditingProjectName('');
+    setEditingProjectIcon('');
+  };
+
+  const handleProjectDelete = (projectId) => {
+    if (onProjectDelete && confirm('Are you sure you want to delete this project?')) {
+      onProjectDelete(projectId);
+    }
+  };
+
+  const handleWalletDisconnect = async () => {
+    if (onWalletDisconnect) {
+      await onWalletDisconnect();
+    }
+  };
+
   const handleSyncData = async () => {
     setIrysStatus('syncing');
     // Mock sync process
@@ -778,11 +932,12 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
   };
 
   const handleWalletConnect = (address) => {
-    setWalletStatus({ connected: true, address });
+    // This function is now passed as a prop, so it doesn't need to set state here.
+    // The walletStatus prop will handle the display.
   };
 
   const getFilteredPages = () => {
-    const allPages = Object.values(mockPages);
+    const allPages = Object.values(pages || []);
     
     if (currentView === 'favorites') {
       return allPages.filter(page => page.isFavorite);
@@ -800,16 +955,18 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
   };
 
   const getProjectPages = (projectId) => {
-    return Object.values(mockPages).filter(page => page.projectId === projectId);
+    const projectPages = Object.values(pages || []).filter(page => page.projectId === projectId);
+    console.log(`🔍 Project ${projectId} pages:`, projectPages.map(p => ({id: p.id, title: p.title, projectId: p.projectId })));
+    return projectPages;
   };
 
   return (
-    <div className="w-64 bg-gray-50 border-r border-gray-200 h-screen flex flex-col">
+    <div className="w-64 bg-gray-50 border-r border-gray-200 h-screen flex flex-col overflow-hidden">
       {/* Workspace Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold">
-            {workspace.name.charAt(0)}
+            {typeof workspace.name === 'string' ? workspace.name.charAt(0) : ''}
           </div>
           <span className="font-semibold text-gray-800">{workspace.name}</span>
         </div>
@@ -852,12 +1009,23 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
           <div className="text-xs text-gray-500 space-y-1">
             <div className="flex items-center gap-2">
               <Wallet className="w-3 h-3" />
-              <span className="truncate">{walletStatus.address.slice(0, 8)}...{walletStatus.address.slice(-4)}</span>
+              <span className="truncate">
+  {typeof walletStatus.address === 'string'
+    ? `${walletStatus.address.slice(0, 8)}...${walletStatus.address.slice(-4)}`
+    : ''}
+</span>
             </div>
             <div className="flex justify-between">
               <span>Decentralized:</span>
               <span className="text-green-600">✓</span>
             </div>
+            <button
+              onClick={handleWalletDisconnect}
+              className="w-full text-xs text-red-600 hover:text-red-800 flex items-center gap-1 mt-2"
+            >
+              <X className="w-3 h-3" />
+              <span>Log Out</span>
+            </button>
           </div>
         ) : (
           <button
@@ -939,9 +1107,9 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
             </button>
           </div>
           
-          <div className="space-y-1">
-            {Object.values(workspace.projects).map((project) => (
-              <div key={project.id}>
+          <div className="space-y-1 pb-2">
+            {Object.values(workspace.projects || {}).map((project) => (
+              <div key={project.id} className="group">
                 <div className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg">
                   <button
                     onClick={() => toggleProject(project.id)}
@@ -952,15 +1120,61 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
                       <ChevronRight className="w-3 h-3" />
                     }
                   </button>
-                  <span className="text-sm">{project.icon}</span>
-                  <span className="text-sm flex-1 truncate">{project.name}</span>
-                  <button
-                    onClick={() => onNewPage(project.id)}
-                    className="p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100"
-                    title="New page"
-                  >
-                    <Plus className="w-3 h-3 text-gray-400" />
-                  </button>
+                  
+                  {editingProject === project.id ? (
+                    <>
+                      <span className="text-sm">{project.icon}</span>
+                      <input
+                        type="text"
+                        value={editingProjectName}
+                        onChange={(e) => setEditingProjectName(e.target.value)}
+                        className="flex-1 sm:w-48 sm:min-w-0 sm:max-w-sm bg-white border border-gray-300 rounded-md text-sm placeholder-gray-400"
+                        placeholder="Project name"
+                      />
+                      <button
+                        onClick={handleProjectSave}
+                        className="p-1 hover:bg-green-200 rounded text-green-600"
+                        title="Save"
+                      >
+                        <CheckSquare className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={handleProjectCancel}
+                        className="p-1 bg-red-200 rounded text-red-600"
+                        title="Cancel"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm" onClick={() => onProjectSelect(project.id)}>{project.icon}</span>
+                      <span className="text-sm flex-1 truncate" onClick={() => onProjectSelect(project.id)}>{project.name}</span>
+                      <button
+                        onClick={() => handleProjectEdit(project)}
+                        className="p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100"
+                        title="Edit project"
+                      >
+                        <Edit3 className="w-3 h-3 text-gray-400" />
+                      </button>
+                      <button
+                        onClick={() => onNewPage(project.id)}
+                        className="p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100"
+                        title="New page"
+                      >
+                        <Plus className="w-3 h-3 text-gray-400" />
+                      </button>
+                      {project.id !== 'personal' && project.id !== 'work' && (
+                        <button
+                          onClick={() => handleProjectDelete(project.id)}
+                          className="p-1 bg-red-200 rounded opacity-0 group-hover:opacity-100"
+                          title="Delete project"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
                 
                 {expandedProjects.has(project.id) && (
@@ -986,22 +1200,6 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
         </div>
       </div>
 
-      {/* User Profile */}
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-            <User className="w-4 h-4 text-gray-600" />
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-medium text-gray-800">User</div>
-            <div className="text-xs text-gray-500">user@example.com</div>
-          </div>
-          <button className="p-1 hover:bg-gray-200 rounded">
-            <Settings className="w-4 h-4 text-gray-400" />
-          </button>
-        </div>
-      </div>
-
       {/* Wallet Connect Modal */}
       <WalletConnectModal
         isOpen={showWalletModal}
@@ -1020,28 +1218,22 @@ const PageEditor = ({ page, onPageUpdate }) => {
   const [currentBlocks, setCurrentBlocks] = useState(page.blocks || []);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'error'
   const [lastSaved, setLastSaved] = useState(null);
+  const [walletStatus, setWalletStatus] = useState(irysService.getWalletStatus());
 
-  // Auto-save functionality
+  // Check wallet status
   useEffect(() => {
-    const saveToIrys = async () => {
-      if (saveStatus === 'saving') return;
-      
-      setSaveStatus('saving');
-      try {
-        const result = await irysService.savePage(page);
-        console.log('Page saved to Irys:', result);
-        setSaveStatus('saved');
-        setLastSaved(new Date().toLocaleTimeString());
-      } catch (error) {
-        console.error('Failed to save to Irys:', error);
-        setSaveStatus('error');
-      }
+    const checkWalletStatus = () => {
+      const status = irysService.getWalletStatus();
+      setWalletStatus(status);
     };
+    
+    checkWalletStatus();
+    const interval = setInterval(checkWalletStatus, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
+  }, []);
 
-    // Auto-save every 5 seconds when there are changes
-    const saveTimeout = setTimeout(saveToIrys, 5000);
-    return () => clearTimeout(saveTimeout);
-  }, [page, saveStatus]);
+
+   
 
   const updateBlock = (blockId, updates) => {
     const newBlocks = currentBlocks.map(block => 
@@ -1083,6 +1275,20 @@ const PageEditor = ({ page, onPageUpdate }) => {
     setSaveStatus('unsaved');
   };
 
+  const handleBlockReorder = (draggedBlockId, targetIndex) => {
+    const draggedIndex = currentBlocks.findIndex(block => block.id === draggedBlockId);
+    if (draggedIndex === -1 || draggedIndex === targetIndex) return;
+
+    const newBlocks = [...currentBlocks];
+    const [draggedBlock] = newBlocks.splice(draggedIndex,1);
+    newBlocks.splice(targetIndex, 0, draggedBlock);
+
+    setCurrentBlocks(newBlocks);
+    const updatedPage = { ...page, blocks: newBlocks };
+    onPageUpdate(updatedPage);
+    setSaveStatus('unsaved');
+  };
+
   const handlePageTitleChange = (e) => {
     const updatedPage = { ...page, title: e.target.value };
     onPageUpdate(updatedPage);
@@ -1097,6 +1303,11 @@ const PageEditor = ({ page, onPageUpdate }) => {
   };
 
   const handleManualSave = async () => {
+    if (!walletStatus?.connected) {
+      alert('Please connect your wallet first to save to Irys');
+      return;
+    }
+    
     setSaveStatus('saving');
     try {
       const result = await irysService.savePage(page);
@@ -1147,8 +1358,13 @@ const PageEditor = ({ page, onPageUpdate }) => {
               
               <button
                 onClick={handleManualSave}
-                disabled={saveStatus === 'saving'}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                disabled={saveStatus === 'saving' || !walletStatus?.connected}
+                className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                  walletStatus?.connected 
+                    ? 'bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                title={walletStatus?.connected ? 'Save to Irys' : 'Connect wallet to save'}
               >
                 <Cloud className={`w-4 h-4 ${saveStatus === 'saving' ? 'animate-spin' : ''}`} />
                 {saveStatus === 'saving' ? 'Saving...' : 'Save to Irys'}
@@ -1156,20 +1372,23 @@ const PageEditor = ({ page, onPageUpdate }) => {
               
               <div className="flex items-center gap-1 text-xs text-gray-500">
                 <Zap className="w-3 h-3" />
-                <span>Auto-save enabled</span>
+                <span>Manual save only</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 mb-4">
-            <span className="text-4xl">{page.icon}</span>
-            <input
-              type="text"
-              value={page.title}
-              onChange={handlePageTitleChange}
-              className="text-4xl font-bold bg-transparent border-none outline-none flex-1 placeholder-gray-400"
-              placeholder="Untitled"
-            />
+          <div className="flex items-center gap-4 mb-4 w-full min-w-0">
+            <span className="text-4xl flex-shrink-0">{page.icon}</span>
+            <div className="flex-1 min-w-0">
+              <input
+                type="text"
+                value={page.title}
+                onChange={handlePageTitleChange}
+                className="text-4xl font-bold bg-transparent border-none outline-none w-full min-w-0 placeholder-gray-400 focus:bg-blue-50 transition-colors"
+                placeholder="Click to edit title"
+                style={{ wordBreak: 'break-word', overflow: 'visible' }}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -1178,7 +1397,7 @@ const PageEditor = ({ page, onPageUpdate }) => {
       <div className="p-6">
         <div className="max-w-4xl mx-auto">
           <div className="space-y-1">
-            {currentBlocks.map((block) => (
+            {currentBlocks.map((block, index) => (
               <Block
                 key={block.id}
                 block={block}
@@ -1187,6 +1406,18 @@ const PageEditor = ({ page, onPageUpdate }) => {
                 insertBlock={insertBlock}
                 isEditing={editingBlock === block.id}
                 setEditingBlock={setEditingBlock}
+                onDragStart={(blockId, blockIndex) => {
+                  // Handle drag start if needed
+                }}
+                onDragOver={(e, targetIndex) => {
+                  e.preventDefault();
+                  e.currentTarget.style.borderTop = '2px solid #3B82F6';
+                }}
+                onDrop={(e, draggedBlockId, targetIndex) => {
+                  e.currentTarget.style.borderTop = '';
+                  handleBlockReorder(draggedBlockId, targetIndex);
+                }}
+                index={index}
               />
             ))}
             
@@ -1217,7 +1448,7 @@ const PageEditor = ({ page, onPageUpdate }) => {
 };
 
 // Main View Component for different sections
-const MainView = ({ view, pages, onPageSelect, onNewPage }) => {
+const MainView = ({ view, pages, onPageSelect, onNewPage, workspace, selectedProjectId, onProjectSelect }) => {
   const getViewTitle = () => {
     switch (view) {
       case 'home': return 'Home';
@@ -1239,6 +1470,10 @@ const MainView = ({ view, pages, onPageSelect, onNewPage }) => {
   };
 
   const getViewPages = () => {
+    if (selectedProjectId) {
+      return pages.filter(page => page.projectId === selectedProjectId);
+    }
+
     switch (view) {
       case 'favorites':
         return pages.filter(page => page.isFavorite);
@@ -1304,7 +1539,7 @@ const MainView = ({ view, pages, onPageSelect, onNewPage }) => {
                     {page.isFavorite && <Star className="w-4 h-4 text-yellow-500 fill-current" />}
                   </div>
                   <p className="text-sm text-gray-500 mb-2">
-                    {mockProjects[page.projectId]?.name || 'No project'}
+                    {workspace.projects?.[page.projectId]?.name || 'No project'}
                   </p>
                   <p className="text-xs text-gray-400">
                     {view === 'recent' && page.lastModified 
@@ -1325,68 +1560,53 @@ const MainView = ({ view, pages, onPageSelect, onNewPage }) => {
 export const NotionClone = () => {
   const { pageId } = useParams();
   const navigate = useNavigate();
-  
+
+  // Состояния
   const [workspace, setWorkspace] = useState(mockWorkspace);
   const [pages, setPages] = useState(mockPages);
   const [currentPageId, setCurrentPageId] = useState(pageId || null);
   const [currentPage, setCurrentPage] = useState(null);
   const [currentView, setCurrentView] = useState(pageId ? 'page' : 'home');
   const [loading, setLoading] = useState(true);
+  const [walletStatus, setWalletStatus] = useState(irysService.getWalletStatus());
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
 
-  // Initialize and load data from Irys
+  // Инициализация и загрузка данных
   useEffect(() => {
     const initializeWorkspace = async () => {
+      let loadedWorkspace = null;
+      let loadedPages = null;
       try {
-        // Try to load existing workspace data
-        const savedWorkspace = await irysService.loadWorkspace('main-workspace');
-        if (savedWorkspace) {
-          setWorkspace(savedWorkspace);
-        }
-
-        // Load all pages
-        const savedPages = {};
-        const allPageIds = Object.keys(mockPages);
-        
-        for (const pageId of allPageIds) {
-          try {
-            const savedPage = await irysService.loadPage(pageId);
-            if (savedPage) {
-              savedPages[pageId] = savedPage;
-            } else {
-              savedPages[pageId] = mockPages[pageId];
-            }
-          } catch (error) {
-            console.error(`Failed to load page ${pageId}:`, error);
-            savedPages[pageId] = mockPages[pageId];
-          }
-        }
-        
-        setPages(savedPages);
-        setLoading(false);
-      } catch (error) {
-        console.error('Failed to initialize workspace:', error);
-        setLoading(false);
+        loadedWorkspace = await irysService.loadWorkspace();
+      } catch (e) {
+        loadedWorkspace = null;
       }
+      try {
+        loadedPages = await irysService.loadPages();
+      } catch (e) {
+        loadedPages = null;
+      }
+      // Fallback на mock-данные
+      setWorkspace(
+        loadedWorkspace && Object.keys(loadedWorkspace).length
+          ? loadedWorkspace
+          : mockWorkspace
+      );
+      setPages(
+        loadedPages && Object.keys(loadedPages).length
+          ? loadedPages
+          : mockPages
+      );
+      setLoading(false);
     };
-
     initializeWorkspace();
+    // eslint-disable-next-line
   }, []);
 
-  // Auto-save workspace changes
-  useEffect(() => {
-    const saveWorkspace = async () => {
-      try {
-        await irysService.saveWorkspace(workspace);
-        console.log('Workspace saved to Irys');
-      } catch (error) {
-        console.error('Failed to save workspace:', error);
-      }
-    };
 
-    const saveTimeout = setTimeout(saveWorkspace, 3000);
-    return () => clearTimeout(saveTimeout);
-  }, [workspace]);
 
+  // Слежение за pageId
   useEffect(() => {
     if (pageId && pages[pageId]) {
       setCurrentPageId(pageId);
@@ -1397,12 +1617,22 @@ export const NotionClone = () => {
     }
   }, [pageId, pages, navigate]);
 
+  // --- Handlers ---
+
   const handlePageSelect = (selectedPageId) => {
     navigate(`/page/${selectedPageId}`);
   };
 
+  const handleProjectSelect = (projectId) => {
+    setSelectedProjectId(projectId);
+    setCurrentView('project');
+    setCurrentPageId(null);
+    setCurrentPage(null);
+  };
+
   const handleViewChange = (view) => {
     setCurrentView(view);
+    setSelectedProjectId(null);
     setCurrentPageId(null);
     setCurrentPage(null);
     navigate('/');
@@ -1427,7 +1657,6 @@ export const NotionClone = () => {
         }
       ]
     };
-    
     setPages(prev => ({ ...prev, [newPageId]: newPage }));
     navigate(`/page/${newPageId}`);
   };
@@ -1441,20 +1670,56 @@ export const NotionClone = () => {
       color: '#6B7280',
       pages: []
     };
-    
     setWorkspace(prev => ({
       ...prev,
       projects: { ...prev.projects, [newProjectId]: newProject }
     }));
   };
 
-  const handlePageUpdate = (updatedPage) => {
-    setPages(prev => ({ ...prev, [updatedPage.id]: updatedPage }));
-    setCurrentPage(updatedPage);
-    
-    // Update last modified
-    updatedPage.lastModified = Date.now();
+  const handleProjectUpdate = (projectId, updatedProject) => {
+    setWorkspace(prev => ({
+      ...prev,
+      projects: {
+        ...prev.projects,
+        [projectId]: updatedProject
+      }
+    }));
   };
+
+  const handleProjectDelete = (projectId) => {
+    setWorkspace(prev => ({
+      ...prev,
+      projects: Object.fromEntries(
+        Object.entries(prev.projects).filter(([id]) => id !== projectId)
+      )
+    }));
+  };
+
+  const handlePageUpdate = (updatedPage) => {
+    setPages(prev => ({
+      ...prev,
+      [updatedPage.id]: { ...updatedPage, lastModified: Date.now() }
+    }));
+    setCurrentPage(updatedPage);
+  };
+
+  const handleWalletDisconnect = async () => {
+    await irysService.disconnectWallet();
+    setWalletStatus({ connected: false, address: null });
+    setShowWalletModal(true);
+    setCurrentPageId(null);
+    setCurrentPage(null);
+    setSelectedProjectId(null);
+    setCurrentView('home');
+    navigate('/');
+  };
+
+  // Показывать модалку подключения кошелька при старте, если не подключен
+  useEffect(() => {
+    if (!walletStatus.connected) {
+      setShowWalletModal(true);
+    }
+  }, [walletStatus.connected]);
 
   if (loading) {
     return (
@@ -1479,12 +1744,18 @@ export const NotionClone = () => {
         onPageSelect={handlePageSelect}
         onNewPage={handleNewPage}
         onNewProject={handleNewProject}
+        onProjectUpdate={handleProjectUpdate}
+        onProjectDelete={handleProjectDelete}
         currentView={currentView}
         onViewChange={handleViewChange}
+        pages={pages}
+        onWalletDisconnect={handleWalletDisconnect}
+        walletStatus={walletStatus}
+        onProjectSelect={handleProjectSelect}
       />
-      
       {currentView === 'page' && currentPage ? (
         <PageEditor
+          key={currentPage.id}
           page={currentPage}
           onPageUpdate={handlePageUpdate}
         />
@@ -1494,8 +1765,19 @@ export const NotionClone = () => {
           pages={Object.values(pages)}
           onPageSelect={handlePageSelect}
           onNewPage={handleNewPage}
+          workspace={workspace}
+          selectedProjectId={selectedProjectId}
+          onProjectSelect={handleProjectSelect}
         />
       )}
+      <WalletConnectModal
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onConnect={(address) => {
+          setWalletStatus({ connected: true, address });
+          setShowWalletModal(false);
+        }}
+      />
     </div>
   );
 };
