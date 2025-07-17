@@ -489,38 +489,72 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
 // Block Type Selector Component
 const BlockTypeSelector = ({ onSelect, onClose, position }) => {
   const [filter, setFilter] = useState('');
+  const selectorRef = useRef(null);
   
   const filteredTypes = Object.entries(blockTypes).filter(([key, config]) =>
-    config.label.toLowerCase().includes(filter.toLowerCase())
+    config.label.toLowerCase().includes(filter.toLowerCase()) ||
+    config.description.toLowerCase().includes(filter.toLowerCase())
   );
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (selectorRef.current && !selectorRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
   return (
     <div 
-      className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-80"
-      style={{ top: position.y, left: position.x }}
+      ref={selectorRef}
+      className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-80 max-h-96 overflow-y-auto"
+      style={{ 
+        top: Math.min(position.y, window.innerHeight - 400),
+        left: Math.min(position.x, window.innerWidth - 320)
+      }}
     >
       <input
         type="text"
         placeholder="Search for a block type..."
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="w-full p-2 border border-gray-200 rounded mb-2 text-sm"
+        className="w-full p-2 border border-gray-200 rounded mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         autoFocus
       />
-      <div className="max-h-64 overflow-y-auto">
-        {filteredTypes.map(([key, config]) => (
-          <button
-            key={key}
-            onClick={() => onSelect(key)}
-            className="w-full text-left p-2 hover:bg-gray-100 rounded flex items-center gap-3"
-          >
-            <span className="text-lg w-8 text-center">{config.icon}</span>
-            <div>
-              <div className="font-medium text-sm">{config.label}</div>
-              <div className="text-xs text-gray-500">{config.description}</div>
-            </div>
-          </button>
-        ))}
+      <div className="space-y-1">
+        {filteredTypes.length > 0 ? (
+          filteredTypes.map(([key, config]) => (
+            <button
+              key={key}
+              onClick={() => onSelect(key)}
+              className="w-full text-left p-2 hover:bg-gray-100 rounded flex items-center gap-3 transition-colors"
+            >
+              <span className="text-lg w-8 text-center flex-shrink-0">{config.icon}</span>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm text-gray-800">{config.label}</div>
+                <div className="text-xs text-gray-500 truncate">{config.description}</div>
+              </div>
+            </button>
+          ))
+        ) : (
+          <div className="text-center text-gray-500 py-4">
+            <p className="text-sm">No blocks found</p>
+          </div>
+        )}
       </div>
     </div>
   );
