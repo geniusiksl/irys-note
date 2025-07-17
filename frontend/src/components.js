@@ -47,12 +47,39 @@ import { v4 as uuidv4 } from 'uuid';
 import { irysService } from './irysService';
 
 // Mock data for the Notion clone
+const mockProjects = {
+  'personal': {
+    id: 'personal',
+    name: 'Personal',
+    icon: '👤',
+    color: '#3B82F6',
+    pages: ['home', 'page1']
+  },
+  'work': {
+    id: 'work',
+    name: 'Work Projects',
+    icon: '💼',
+    color: '#10B981',
+    pages: ['page2']
+  },
+  'learning': {
+    id: 'learning',
+    name: 'Learning & Development',
+    icon: '📚',
+    color: '#8B5CF6',
+    pages: []
+  }
+};
+
 const mockPages = {
   'home': {
     id: 'home',
     title: 'Getting Started',
     icon: '👋',
     cover: null,
+    projectId: 'personal',
+    isFavorite: false,
+    lastModified: Date.now(),
     blocks: [
       {
         id: 'b1',
@@ -75,13 +102,13 @@ const mockPages = {
       {
         id: 'b4',
         type: 'bulletList',
-        content: 'Block-based content editing',
+        content: 'Block-based content editing with slash commands',
         properties: {}
       },
       {
         id: 'b5',
         type: 'bulletList',
-        content: 'Hierarchical page structure',
+        content: 'Hierarchical page structure with projects',
         properties: {}
       },
       {
@@ -93,7 +120,7 @@ const mockPages = {
       {
         id: 'b7',
         type: 'bulletList',
-        content: 'Real-time collaboration (coming soon)',
+        content: 'Real-time auto-save with wallet integration',
         properties: {}
       },
       {
@@ -105,7 +132,7 @@ const mockPages = {
       {
         id: 'b9',
         type: 'callout',
-        content: 'All your data is stored securely on the Irys network - a decentralized, permanent storage solution. Your content is immutable and accessible anywhere.',
+        content: 'Connect your wallet to store your data permanently on the Irys decentralized network. Your content will be immutable and accessible anywhere.',
         properties: { emoji: '🔐' }
       },
       {
@@ -121,6 +148,9 @@ const mockPages = {
     title: 'My First Page',
     icon: '📝',
     cover: null,
+    projectId: 'personal',
+    isFavorite: true,
+    lastModified: Date.now() - 86400000, // 1 day ago
     blocks: [
       {
         id: 'p1b1',
@@ -131,7 +161,31 @@ const mockPages = {
       {
         id: 'p1b2',
         type: 'paragraph',
-        content: 'This is an example page. You can create any content here!',
+        content: 'This is an example page. You can create any content here using the slash commands!',
+        properties: {}
+      },
+      {
+        id: 'p1b3',
+        type: 'heading2',
+        content: 'Try these commands:',
+        properties: {}
+      },
+      {
+        id: 'p1b4',
+        type: 'bulletList',
+        content: 'Type "/" to see all available block types',
+        properties: {}
+      },
+      {
+        id: 'p1b5',
+        type: 'bulletList',
+        content: 'Type "/h1" for a heading',
+        properties: {}
+      },
+      {
+        id: 'p1b6',
+        type: 'bulletList',
+        content: 'Type "/todo" for a to-do list',
         properties: {}
       }
     ]
@@ -141,6 +195,9 @@ const mockPages = {
     title: 'Meeting Notes',
     icon: '📋',
     cover: null,
+    projectId: 'work',
+    isFavorite: false,
+    lastModified: Date.now() - 172800000, // 2 days ago
     blocks: [
       {
         id: 'p2b1',
@@ -185,11 +242,9 @@ const mockPages = {
 const mockWorkspace = {
   id: 'workspace1',
   name: 'My Workspace',
-  pages: [
-    { id: 'home', title: 'Getting Started', icon: '👋', children: [] },
-    { id: 'page1', title: 'My First Page', icon: '📝', children: [] },
-    { id: 'page2', title: 'Meeting Notes', icon: '📋', children: [] }
-  ]
+  projects: mockProjects,
+  recentPages: ['home', 'page1', 'page2'],
+  favorites: ['page1']
 };
 
 // Block Types Configuration
