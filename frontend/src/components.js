@@ -734,11 +734,13 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
 };
 
 // Sidebar Component
-const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
-  const [expandedPages, setExpandedPages] = useState(new Set());
+const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange }) => {
+  const [expandedProjects, setExpandedProjects] = useState(new Set(['personal', 'work']));
   const [searchTerm, setSearchTerm] = useState('');
   const [irysStatus, setIrysStatus] = useState('ready');
   const [storageStats, setStorageStats] = useState(null);
+  const [walletStatus, setWalletStatus] = useState(null);
+  const [showWalletModal, setShowWalletModal] = useState(false);
 
   // Check Irys status
   useEffect(() => {
@@ -749,6 +751,7 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
       if (isReady) {
         const stats = await irysService.getStorageStats();
         setStorageStats(stats);
+        setWalletStatus(irysService.getWalletStatus());
       }
     };
     
@@ -757,25 +760,47 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const toggleExpanded = (pageId) => {
-    const newExpanded = new Set(expandedPages);
-    if (newExpanded.has(pageId)) {
-      newExpanded.delete(pageId);
+  const toggleProject = (projectId) => {
+    const newExpanded = new Set(expandedProjects);
+    if (newExpanded.has(projectId)) {
+      newExpanded.delete(projectId);
     } else {
-      newExpanded.add(pageId);
+      newExpanded.add(projectId);
     }
-    setExpandedPages(newExpanded);
+    setExpandedProjects(newExpanded);
   };
-
-  const filteredPages = workspace.pages.filter(page =>
-    page.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const handleSyncData = async () => {
     setIrysStatus('syncing');
     // Mock sync process
     await new Promise(resolve => setTimeout(resolve, 2000));
     setIrysStatus('ready');
+  };
+
+  const handleWalletConnect = (address) => {
+    setWalletStatus({ connected: true, address });
+  };
+
+  const getFilteredPages = () => {
+    const allPages = Object.values(mockPages);
+    
+    if (currentView === 'favorites') {
+      return allPages.filter(page => page.isFavorite);
+    }
+    
+    if (currentView === 'recent') {
+      return allPages
+        .sort((a, b) => b.lastModified - a.lastModified)
+        .slice(0, 10);
+    }
+    
+    return allPages.filter(page =>
+      page.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  const getProjectPages = (projectId) => {
+    return Object.values(mockPages).filter(page => page.projectId === projectId);
   };
 
   return (
@@ -802,7 +827,7 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
         </div>
       </div>
 
-      {/* Irys Status */}
+      {/* Wallet Status */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-2 mb-2">
           <div className="flex items-center gap-2">
@@ -823,8 +848,29 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
           </button>
         </div>
         
-        {storageStats && (
+        {walletStatus?.connected ? (
           <div className="text-xs text-gray-500 space-y-1">
+            <div className="flex items-center gap-2">
+              <Wallet className="w-3 h-3" />
+              <span className="truncate">{walletStatus.address.slice(0, 8)}...{walletStatus.address.slice(-4)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Decentralized:</span>
+              <span className="text-green-600">✓</span>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowWalletModal(true)}
+            className="w-full text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          >
+            <Wallet className="w-3 h-3" />
+            <span>Connect Wallet</span>
+          </button>
+        )}
+        
+        {storageStats && (
+          <div className="text-xs text-gray-500 space-y-1 mt-2">
             <div className="flex justify-between">
               <span>Items:</span>
               <span>{storageStats.totalItems}</span>
@@ -835,74 +881,105 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
             </div>
           </div>
         )}
-        
-        <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
-          <Shield className="w-3 h-3" />
-          <span>Decentralized Storage</span>
-        </div>
       </div>
 
       {/* Quick Actions */}
       <div className="p-4 border-b border-gray-200">
         <div className="space-y-1">
-          <button className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg text-left text-sm">
+          <button 
+            onClick={() => onViewChange('home')}
+            className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${
+              currentView === 'home' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+            }`}
+          >
             <Home className="w-4 h-4" />
             <span>Home</span>
           </button>
-          <button className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg text-left text-sm">
+          <button 
+            onClick={() => onViewChange('favorites')}
+            className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${
+              currentView === 'favorites' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+            }`}
+          >
             <Star className="w-4 h-4" />
             <span>Favorites</span>
           </button>
-          <button className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg text-left text-sm">
+          <button 
+            onClick={() => onViewChange('recent')}
+            className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${
+              currentView === 'recent' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+            }`}
+          >
             <Clock className="w-4 h-4" />
             <span>Recent</span>
           </button>
-          <button className="w-full flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg text-left text-sm">
-            <Database className="w-4 h-4" />
+          <button 
+            onClick={() => onViewChange('templates')}
+            className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${
+              currentView === 'templates' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+            }`}
+          >
+            <Layout className="w-4 h-4" />
             <span>Templates</span>
           </button>
         </div>
       </div>
 
-      {/* Pages List */}
+      {/* Projects Section */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Pages</span>
+            <span className="text-sm font-medium text-gray-600">Projects</span>
             <button
-              onClick={onNewPage}
+              onClick={onNewProject}
               className="p-1 hover:bg-gray-200 rounded"
+              title="New project"
             >
-              <Plus className="w-4 h-4 text-gray-400" />
+              <FolderPlus className="w-4 h-4 text-gray-400" />
             </button>
           </div>
           
           <div className="space-y-1">
-            {filteredPages.map((page) => (
-              <div key={page.id}>
-                <div 
-                  className={`flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer ${
-                    currentPageId === page.id ? 'bg-blue-100' : ''
-                  }`}
-                  onClick={() => onPageSelect(page.id)}
-                >
-                  <span className="text-sm">{page.icon}</span>
-                  <span className="text-sm flex-1 truncate">{page.title}</span>
-                  {page.children && page.children.length > 0 && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleExpanded(page.id);
-                      }}
-                      className="p-1 hover:bg-gray-200 rounded"
-                    >
-                      {expandedPages.has(page.id) ? 
-                        <ChevronDown className="w-3 h-3" /> : 
-                        <ChevronRight className="w-3 h-3" />
-                      }
-                    </button>
-                  )}
+            {Object.values(workspace.projects).map((project) => (
+              <div key={project.id}>
+                <div className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg">
+                  <button
+                    onClick={() => toggleProject(project.id)}
+                    className="p-1 hover:bg-gray-200 rounded"
+                  >
+                    {expandedProjects.has(project.id) ? 
+                      <ChevronDown className="w-3 h-3" /> : 
+                      <ChevronRight className="w-3 h-3" />
+                    }
+                  </button>
+                  <span className="text-sm">{project.icon}</span>
+                  <span className="text-sm flex-1 truncate">{project.name}</span>
+                  <button
+                    onClick={() => onNewPage(project.id)}
+                    className="p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100"
+                    title="New page"
+                  >
+                    <Plus className="w-3 h-3 text-gray-400" />
+                  </button>
                 </div>
+                
+                {expandedProjects.has(project.id) && (
+                  <div className="ml-6 space-y-1">
+                    {getProjectPages(project.id).map((page) => (
+                      <div 
+                        key={page.id}
+                        className={`flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer ${
+                          currentPageId === page.id ? 'bg-blue-100' : ''
+                        }`}
+                        onClick={() => onPageSelect(page.id)}
+                      >
+                        <span className="text-sm">{page.icon}</span>
+                        <span className="text-sm flex-1 truncate">{page.title}</span>
+                        {page.isFavorite && <Star className="w-3 h-3 text-yellow-500 fill-current" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -924,6 +1001,13 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage }) => {
           </button>
         </div>
       </div>
+
+      {/* Wallet Connect Modal */}
+      <WalletConnectModal
+        isOpen={showWalletModal}
+        onClose={() => setShowWalletModal(false)}
+        onConnect={handleWalletConnect}
+      />
     </div>
   );
 };
@@ -1025,6 +1109,11 @@ const PageEditor = ({ page, onPageUpdate }) => {
     }
   };
 
+  const toggleFavorite = () => {
+    const updatedPage = { ...page, isFavorite: !page.isFavorite };
+    onPageUpdate(updatedPage);
+  };
+
   return (
     <div className="flex-1 bg-white">
       {/* Page Header */}
@@ -1046,6 +1135,16 @@ const PageEditor = ({ page, onPageUpdate }) => {
             </div>
             
             <div className="flex items-center gap-2">
+              <button
+                onClick={toggleFavorite}
+                className={`p-2 rounded-lg transition-colors ${
+                  page.isFavorite ? 'text-yellow-500 hover:bg-yellow-50' : 'text-gray-400 hover:bg-gray-100'
+                }`}
+                title={page.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              >
+                <Star className={`w-5 h-5 ${page.isFavorite ? 'fill-current' : ''}`} />
+              </button>
+              
               <button
                 onClick={handleManualSave}
                 disabled={saveStatus === 'saving'}
@@ -1117,6 +1216,111 @@ const PageEditor = ({ page, onPageUpdate }) => {
   );
 };
 
+// Main View Component for different sections
+const MainView = ({ view, pages, onPageSelect, onNewPage }) => {
+  const getViewTitle = () => {
+    switch (view) {
+      case 'home': return 'Home';
+      case 'favorites': return 'Favorites';
+      case 'recent': return 'Recent';
+      case 'templates': return 'Templates';
+      default: return 'Home';
+    }
+  };
+
+  const getViewIcon = () => {
+    switch (view) {
+      case 'home': return <Home className="w-6 h-6" />;
+      case 'favorites': return <Star className="w-6 h-6" />;
+      case 'recent': return <Clock className="w-6 h-6" />;
+      case 'templates': return <Layout className="w-6 h-6" />;
+      default: return <Home className="w-6 h-6" />;
+    }
+  };
+
+  const getViewPages = () => {
+    switch (view) {
+      case 'favorites':
+        return pages.filter(page => page.isFavorite);
+      case 'recent':
+        return pages.sort((a, b) => b.lastModified - a.lastModified).slice(0, 10);
+      case 'templates':
+        return []; // No templates for now
+      default:
+        return pages;
+    }
+  };
+
+  const viewPages = getViewPages();
+
+  return (
+    <div className="flex-1 bg-white">
+      <div className="p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-4 mb-8">
+            {getViewIcon()}
+            <h1 className="text-3xl font-bold text-gray-800">{getViewTitle()}</h1>
+          </div>
+
+          {view === 'templates' ? (
+            <div className="text-center py-12">
+              <Layout className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h2 className="text-xl font-semibold text-gray-600 mb-2">Templates coming soon</h2>
+              <p className="text-gray-500">We're working on bringing you awesome templates to get started quickly.</p>
+            </div>
+          ) : viewPages.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto text-gray-400 mb-4">
+                {view === 'favorites' ? <Star className="w-16 h-16" /> : <FileText className="w-16 h-16" />}
+              </div>
+              <h2 className="text-xl font-semibold text-gray-600 mb-2">
+                {view === 'favorites' ? 'No favorites yet' : 'No pages yet'}
+              </h2>
+              <p className="text-gray-500 mb-4">
+                {view === 'favorites' 
+                  ? 'Star pages to add them to your favorites' 
+                  : 'Create your first page to get started'}
+              </p>
+              {view !== 'favorites' && (
+                <button
+                  onClick={() => onNewPage()}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Create New Page
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {viewPages.map((page) => (
+                <div
+                  key={page.id}
+                  onClick={() => onPageSelect(page.id)}
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <span className="text-2xl">{page.icon}</span>
+                    <h3 className="font-medium text-gray-800 flex-1 truncate">{page.title}</h3>
+                    {page.isFavorite && <Star className="w-4 h-4 text-yellow-500 fill-current" />}
+                  </div>
+                  <p className="text-sm text-gray-500 mb-2">
+                    {mockProjects[page.projectId]?.name || 'No project'}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {view === 'recent' && page.lastModified 
+                      ? `Modified ${new Date(page.lastModified).toLocaleDateString()}`
+                      : `${page.blocks?.length || 0} blocks`}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main Notion Clone Component
 export const NotionClone = () => {
   const { pageId } = useParams();
@@ -1124,8 +1328,9 @@ export const NotionClone = () => {
   
   const [workspace, setWorkspace] = useState(mockWorkspace);
   const [pages, setPages] = useState(mockPages);
-  const [currentPageId, setCurrentPageId] = useState(pageId || 'home');
-  const [currentPage, setCurrentPage] = useState(pages[currentPageId] || pages.home);
+  const [currentPageId, setCurrentPageId] = useState(pageId || null);
+  const [currentPage, setCurrentPage] = useState(null);
+  const [currentView, setCurrentView] = useState(pageId ? 'page' : 'home');
   const [loading, setLoading] = useState(true);
 
   // Initialize and load data from Irys
@@ -1140,17 +1345,19 @@ export const NotionClone = () => {
 
         // Load all pages
         const savedPages = {};
-        for (const page of mockWorkspace.pages) {
+        const allPageIds = Object.keys(mockPages);
+        
+        for (const pageId of allPageIds) {
           try {
-            const savedPage = await irysService.loadPage(page.id);
+            const savedPage = await irysService.loadPage(pageId);
             if (savedPage) {
-              savedPages[page.id] = savedPage;
+              savedPages[pageId] = savedPage;
             } else {
-              savedPages[page.id] = mockPages[page.id];
+              savedPages[pageId] = mockPages[pageId];
             }
           } catch (error) {
-            console.error(`Failed to load page ${page.id}:`, error);
-            savedPages[page.id] = mockPages[page.id];
+            console.error(`Failed to load page ${pageId}:`, error);
+            savedPages[pageId] = mockPages[pageId];
           }
         }
         
@@ -1184,8 +1391,9 @@ export const NotionClone = () => {
     if (pageId && pages[pageId]) {
       setCurrentPageId(pageId);
       setCurrentPage(pages[pageId]);
-    } else {
-      navigate('/page/home');
+      setCurrentView('page');
+    } else if (pageId) {
+      navigate('/');
     }
   }, [pageId, pages, navigate]);
 
@@ -1193,13 +1401,23 @@ export const NotionClone = () => {
     navigate(`/page/${selectedPageId}`);
   };
 
-  const handleNewPage = () => {
+  const handleViewChange = (view) => {
+    setCurrentView(view);
+    setCurrentPageId(null);
+    setCurrentPage(null);
+    navigate('/');
+  };
+
+  const handleNewPage = (projectId = 'personal') => {
     const newPageId = uuidv4();
     const newPage = {
       id: newPageId,
       title: 'Untitled',
       icon: '📄',
       cover: null,
+      projectId: projectId,
+      isFavorite: false,
+      lastModified: Date.now(),
       blocks: [
         {
           id: uuidv4(),
@@ -1211,27 +1429,31 @@ export const NotionClone = () => {
     };
     
     setPages(prev => ({ ...prev, [newPageId]: newPage }));
+    navigate(`/page/${newPageId}`);
+  };
+
+  const handleNewProject = () => {
+    const newProjectId = uuidv4();
+    const newProject = {
+      id: newProjectId,
+      name: 'New Project',
+      icon: '📁',
+      color: '#6B7280',
+      pages: []
+    };
+    
     setWorkspace(prev => ({
       ...prev,
-      pages: [...prev.pages, { id: newPageId, title: 'Untitled', icon: '📄', children: [] }]
+      projects: { ...prev.projects, [newProjectId]: newProject }
     }));
-    
-    navigate(`/page/${newPageId}`);
   };
 
   const handlePageUpdate = (updatedPage) => {
     setPages(prev => ({ ...prev, [updatedPage.id]: updatedPage }));
     setCurrentPage(updatedPage);
     
-    // Update workspace pages list
-    setWorkspace(prev => ({
-      ...prev,
-      pages: prev.pages.map(page => 
-        page.id === updatedPage.id 
-          ? { ...page, title: updatedPage.title, icon: updatedPage.icon }
-          : page
-      )
-    }));
+    // Update last modified
+    updatedPage.lastModified = Date.now();
   };
 
   if (loading) {
@@ -1256,12 +1478,24 @@ export const NotionClone = () => {
         currentPageId={currentPageId}
         onPageSelect={handlePageSelect}
         onNewPage={handleNewPage}
+        onNewProject={handleNewProject}
+        currentView={currentView}
+        onViewChange={handleViewChange}
       />
       
-      <PageEditor
-        page={currentPage}
-        onPageUpdate={handlePageUpdate}
-      />
+      {currentView === 'page' && currentPage ? (
+        <PageEditor
+          page={currentPage}
+          onPageUpdate={handlePageUpdate}
+        />
+      ) : (
+        <MainView
+          view={currentView}
+          pages={Object.values(pages)}
+          onPageSelect={handlePageSelect}
+          onNewPage={handleNewPage}
+        />
+      )}
     </div>
   );
 };
