@@ -1,5 +1,32 @@
 {
+  "name": "frontend",
+  "version": "1.0.0",
+  "private": true,
   "dependencies": {
-    "@irys/sdk": "^0.2.11"
+    "@irys/sdk": "^0.2.11",
+    "buffer": "^6.0.3",
+    "stream-browserify": "^3.0.0",
+    "crypto-browserify": "^3.12.0",
+    "process": "^0.11.10",
+    "assert": "^2.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
+  },
+  "browser": {
+    "buffer": "buffer",
+    "stream": "stream-browserify",
+    "crypto": "crypto-browserify",
+    "process": "process/browser",
+    "assert": "assert"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "craco build",
+    "test": "craco test",
+    "eject": "react-scripts eject"
+  },
+  "devDependencies": {
+    "react-app-rewired": "^2.2.1"
   }
 }

@@ -1,11 +1,25 @@
+import Irys from "@irys/sdk";
+import { ethers } from "ethers"; // v5!
+
+function getIrysWithWallet() {
+  if (typeof window.ethereum === "undefined") {
+    throw new Error("No EVM wallet found. Please install Wallet and make it the active wallet.");
+  }
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const signer = provider.getSigner();
+  return new Irys({
+    url: "https://node1.irys.xyz",
+    token: "ethereum",
+    wallet: signer
+  });
+}
+
 class IrysService {
   getWalletStatus() {
-    const address = localStorage.getItem('walletAddress');
-    const connected = !!address;
-    return {
-      connected,
-      address: address || null
-    };
+    if (typeof window.ethereum !== "undefined" && window.ethereum.selectedAddress) {
+      return { connected: true, address: window.ethereum.selectedAddress };
+    }
+    return { connected: false, address: null };
   }
 
   isReady() {
@@ -26,15 +40,39 @@ class IrysService {
     }
   }
 
-  async getStorageData() {
-    // Используем /pages как источник всех страниц
-    try {
-      const response = await fetch('http://localhost:4000/pages');
-      if (!response.ok) throw new Error('Failed to get storage data');
-      return await response.json();
-    } catch (e) {
-      return null;
+  async connectWallet() {
+    if (typeof window.ethereum === "undefined") {
+      return { success: false, error: "No EVM wallet found. Please install Wallet and make it the active wallet." };
     }
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      return { success: true, address: accounts[0] };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+
+  async saveDataToIrys(data) {
+    const irys = getIrysWithWallet();
+    await irys.ready();
+    const receipt = await irys.upload(JSON.stringify(data));
+    return receipt.id;
+  }
+
+  async sendIdToServer(endpoint, id) {
+    const res = await fetch(`http://localhost:4000/${endpoint}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) throw new Error("Failed to send id to server");
+    return true;
+  }
+
+  async loadDataFromIrys(id) {
+    const res = await fetch(`https://gateway.irys.xyz/${id}`);
+    if (!res.ok) throw new Error("Failed to fetch data from Irys");
+    return await res.json();
   }
 
   async loadPages() {
@@ -43,24 +81,21 @@ class IrysService {
       if (!response.ok) throw new Error('Failed to load pages');
       return await response.json();
     } catch (e) {
-      return null;
+      return {};
     }
   }
 
-  async savePages(pagesData) {
+  // Добавить сохранение страницы в Irys
+  async savePage(page) {
     try {
-      const response = await fetch('http://localhost:4000/pages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(pagesData),
-      });
-      if (!response.ok) throw new Error('Failed to save pages');
-      return await response.json();
+      const id = await this.saveDataToIrys(page);
+      return { success: true, id };
     } catch (e) {
-      return { success: false };
+      return { success: false, error: e.message };
     }
   }
 
+  // Добавить загрузку workspace (заглушка, если нет бекенда)
   async loadWorkspace() {
     try {
       const response = await fetch('http://localhost:4000/workspace');
@@ -71,66 +106,12 @@ class IrysService {
     }
   }
 
-  async saveWorkspace(workspaceData) {
-    try {
-      const response = await fetch('http://localhost:4000/workspace', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(workspaceData),
-      });
-      if (!response.ok) throw new Error('Failed to save workspace');
-      return await response.json();
-    } catch (e) {
-      return { success: false };
+  disconnectWallet() {
+    if (window.localStorage) {
+      window.localStorage.removeItem('walletAddress');
+      window.localStorage.removeItem('walletConnected');
     }
-  }
-
-  async connectWallet() {
-    if (typeof window.okxwallet !== 'undefined' || (window.ethereum && window.ethereum.isOkxWallet)) {
-      try {
-        const provider = window.okxwallet || window.ethereum;
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
-        localStorage.setItem('walletAddress', accounts[0]);
-        localStorage.setItem('walletConnected', 'true');
-        return {
-          success: true,
-          connected: true,
-          address: accounts[0]
-        };
-      } catch (err) {
-        return {
-          success: false,
-          connected: false,
-          address: null,
-          error: err.message
-        };
-      }
-    } else {
-      return {
-        success: false,
-        connected: false,
-        address: null,
-        error: 'OKX Wallet extension not found'
-      };
-    }
-  }
-
-  async disconnectWallet() {
-    localStorage.removeItem('wallet');
-    localStorage.removeItem('walletAddress');
-    localStorage.removeItem('walletConnected');
     return true;
-  }
-
-  // savePage вызывает savePages для одной страницы
-  async savePage(pageData) {
-    let pages = {};
-    try {
-      pages = await this.loadPages();
-    } catch (e) {}
-    pages = pages && typeof pages === 'object' ? pages : {};
-    pages[pageData.id] = pageData;
-    return this.savePages(pages);
   }
 }
 

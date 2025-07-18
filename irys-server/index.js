@@ -1,41 +1,12 @@
 const express = require('express');
 const cors = require('cors');
-const Irys = require('@irys/sdk').default;
-const { ethers } = require('ethers');
-const fetch = require('node-fetch'); 
 const fs = require('fs');
 const path = require('path');
-
-
-const IRYS_URL = 'https://testnet.irys.xyz';
-const IRYS_TOKEN = 'ethereum';
-const PRIVATE_KEY = '0xb6affc777b195b0360b59bed30298d88ca9b1bbd6b443183018a76b2f90519b5'; 
+require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-
-const provider = new ethers.JsonRpcProvider('https://rpc.ankr.com/eth_sepolia');
-
-
-let irys;
-async function initIrys() {
-  try {
-    irys = new Irys({
-      url: IRYS_URL,
-      token: IRYS_TOKEN,
-      wallet: PRIVATE_KEY, 
-      rpcUrl: 'https://sepolia-rpc.irys.xyz/v1/execution-rpc',
-    });
-    await irys.ready();
-    console.log('Irys SDK initialized (Sepolia)');
-  } catch (e) {
-    console.error('Irys SDK init error:', e);
-  }
-}
-initIrys();
-
 
 const idsPath = path.join(__dirname, 'ids.json');
 function loadIds() {
@@ -51,22 +22,18 @@ function saveIds(ids) {
 }
 let { lastWorkspaceId, lastPagesId } = loadIds();
 
-
+// Клиент отправляет только id после upload в Irys
 app.post('/workspace', async (req, res) => {
   try {
-    if (!irys) return res.status(500).json({ error: 'Irys not initialized' });
-    const workspaceData = req.body;
-    console.log('POST /workspace body:', workspaceData);
-    const receipt = await irys.upload(JSON.stringify(workspaceData));
-    lastWorkspaceId = receipt.id;
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'Missing id' });
+    lastWorkspaceId = id;
     saveIds({ lastWorkspaceId, lastPagesId });
-    res.json({ success: true, id: receipt.id, url: `https://gateway.irys.xyz/${receipt.id}` });
+    res.json({ success: true });
   } catch (err) {
-    console.error('Irys upload error (workspace):', err);
     res.status(500).json({ error: err.message });
   }
 });
-
 
 app.get('/workspace', async (req, res) => {
   try {
@@ -76,27 +43,21 @@ app.get('/workspace', async (req, res) => {
     const data = await response.json();
     res.json(data);
   } catch (err) {
-    console.error('Irys fetch error (workspace):', err);
     res.status(500).json({ error: err.message });
   }
 });
-
 
 app.post('/pages', async (req, res) => {
   try {
-    if (!irys) return res.status(500).json({ error: 'Irys not initialized' });
-    const pagesData = req.body;
-    console.log('POST /pages body:', pagesData);
-    const receipt = await irys.upload(JSON.stringify(pagesData));
-    lastPagesId = receipt.id;
+    const { id } = req.body;
+    if (!id) return res.status(400).json({ error: 'Missing id' });
+    lastPagesId = id;
     saveIds({ lastWorkspaceId, lastPagesId });
-    res.json({ success: true, id: receipt.id, url: `https://gateway.irys.xyz/${receipt.id}` });
+    res.json({ success: true });
   } catch (err) {
-    console.error('Irys upload error (pages):', err);
     res.status(500).json({ error: err.message });
   }
 });
-
 
 app.get('/pages', async (req, res) => {
   try {
@@ -106,12 +67,10 @@ app.get('/pages', async (req, res) => {
     const data = await response.json();
     res.json(data);
   } catch (err) {
-    console.error('Irys fetch error (pages):', err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// Получить статистику (items и size)
 app.get('/storage-stats', async (req, res) => {
   try {
     if (!lastPagesId) return res.json({ items: 0, size: 0 });
@@ -122,7 +81,6 @@ app.get('/storage-stats', async (req, res) => {
     const size = JSON.stringify(pages).length;
     res.json({ items, size });
   } catch (err) {
-    console.error('Irys fetch error (storage-stats):', err);
     res.status(500).json({ error: err.message });
   }
 });

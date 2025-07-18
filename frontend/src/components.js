@@ -418,7 +418,7 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
             ) : (
               <>
                 <Wallet className="w-5 h-5" />
-                <span>Connect OKX</span>
+                <span>Connect Wallet</span>
               </>
             )}
           </button>
@@ -954,10 +954,11 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
     );
   };
 
+  // Исправлено: показываем все страницы с projectId = projectId
   const getProjectPages = (projectId) => {
-    const projectPages = Object.values(pages || []).filter(page => page.projectId === projectId);
-    console.log(`🔍 Project ${projectId} pages:`, projectPages.map(p => ({id: p.id, title: p.title, projectId: p.projectId })));
-    return projectPages;
+    const filtered = Object.values(pages || {}).filter(page => page.projectId === projectId);
+    console.log('DEBUG: Sidebar getProjectPages', { projectId, allPages: pages, filtered });
+    return filtered;
   };
 
   return (
@@ -1587,21 +1588,27 @@ export const NotionClone = () => {
       } catch (e) {
         loadedPages = null;
       }
-      // Fallback на mock-данные
+      // Исправленная логика:
       setWorkspace(
-        loadedWorkspace && Object.keys(loadedWorkspace).length
+        loadedWorkspace && loadedWorkspace.projects && Object.keys(loadedWorkspace.projects).length
           ? loadedWorkspace
           : mockWorkspace
       );
+      // Проверяем, есть ли все ключевые mock-страницы в ответе сервера
+      const mustHavePages = ['home', 'page1', 'page2'];
+      const hasAllMockPages = mustHavePages.every(id => loadedPages && loadedPages[id]);
       setPages(
-        loadedPages && Object.keys(loadedPages).length
+        loadedPages && Object.keys(loadedPages).length && !loadedPages.error && hasAllMockPages
           ? loadedPages
           : mockPages
       );
       setLoading(false);
+      // Логируем состояние pages после инициализации
+      setTimeout(() => {
+        console.log('DEBUG: pages after init:', loadedPages, mockPages);
+      }, 100);
     };
     initializeWorkspace();
-    // eslint-disable-next-line
   }, []);
 
 
@@ -1613,6 +1620,10 @@ export const NotionClone = () => {
       setCurrentPage(pages[pageId]);
       setCurrentView('page');
     } else if (pageId) {
+      // Если страницы нет, сбрасываем состояние
+      setCurrentPageId(null);
+      setCurrentPage(null);
+      setCurrentView('home');
       navigate('/');
     }
   }, [pageId, pages, navigate]);
