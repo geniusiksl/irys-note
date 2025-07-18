@@ -140,6 +140,25 @@ const mockProjects = {
   }
 };
 
+// Функции для работы с localStorage
+const saveToLocalStorage = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error('Failed to save to localStorage:', error);
+  }
+};
+
+const loadFromLocalStorage = (key, defaultValue = null) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error('Failed to load from localStorage:', error);
+    return defaultValue;
+  }
+};
+
 const mockPages = {
   'home': {
     id: 'home',
@@ -847,7 +866,7 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
 };
 
 // Sidebar Component
-const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange, onProjectUpdate, onProjectDelete, pages, onWalletDisconnect, walletStatus, onProjectSelect }) => {
+const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange, onProjectUpdate, onProjectDelete, pages, onWalletDisconnect, walletStatus, onProjectSelect, onResetData }) => {
   const [expandedProjects, setExpandedProjects] = useState(new Set(['personal', 'work']));
   const [searchTerm, setSearchTerm] = useState('');
   const [irysStatus, setIrysStatus] = useState('ready');
@@ -1201,6 +1220,20 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
         </div>
       </div>
 
+      {/* Settings Section */}
+      <div className="p-4 border-t border-gray-200">
+        <div className="space-y-1">
+          <button
+            onClick={onResetData}
+            className="w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
+            title="Reset all data"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Reset Data</span>
+          </button>
+        </div>
+      </div>
+
       {/* Wallet Connect Modal */}
       <WalletConnectModal
         isOpen={showWalletModal}
@@ -1232,6 +1265,8 @@ const PageEditor = ({ page, onPageUpdate }) => {
     const interval = setInterval(checkWalletStatus, 5000); // Check every 5 seconds
     return () => clearInterval(interval);
   }, []);
+
+
 
 
    
@@ -1303,6 +1338,8 @@ const PageEditor = ({ page, onPageUpdate }) => {
     setShowBlockSelector(false);
   };
 
+
+
   const handleManualSave = async () => {
     if (!walletStatus?.connected) {
       alert('Please connect your wallet first to save to Irys');
@@ -1340,9 +1377,9 @@ const PageEditor = ({ page, onPageUpdate }) => {
                 saveStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
               }`}></div>
               <span>
-                {saveStatus === 'saved' && lastSaved ? `Saved at ${lastSaved}` :
+                {saveStatus === 'saved' && lastSaved ? `Saved to Irys at ${lastSaved}` :
                  saveStatus === 'saving' ? 'Saving to Irys...' :
-                 saveStatus === 'error' ? 'Save failed' : 'Unsaved changes'}
+                 saveStatus === 'error' ? 'Irys save failed' : 'Local changes saved'}
               </span>
             </div>
             
@@ -1373,7 +1410,7 @@ const PageEditor = ({ page, onPageUpdate }) => {
               
               <div className="flex items-center gap-1 text-xs text-gray-500">
                 <Zap className="w-3 h-3" />
-                <span>Manual save only</span>
+                <span>Local auto-save</span>
               </div>
             </div>
           </div>
@@ -1576,8 +1613,14 @@ export const NotionClone = () => {
   // Инициализация и загрузка данных
   useEffect(() => {
     const initializeWorkspace = async () => {
+      // Сначала загружаем из localStorage
+      const localWorkspace = loadFromLocalStorage('irysNote_workspace', null);
+      const localPages = loadFromLocalStorage('irysNote_pages', null);
+      
       let loadedWorkspace = null;
       let loadedPages = null;
+      
+      // Пытаемся загрузить с сервера/Irys
       try {
         loadedWorkspace = await irysService.loadWorkspace();
       } catch (e) {
@@ -1588,24 +1631,37 @@ export const NotionClone = () => {
       } catch (e) {
         loadedPages = null;
       }
-      // Исправленная логика:
-      setWorkspace(
-        loadedWorkspace && loadedWorkspace.projects && Object.keys(loadedWorkspace.projects).length
-          ? loadedWorkspace
-          : mockWorkspace
-      );
-      // Проверяем, есть ли все ключевые mock-страницы в ответе сервера
-      const mustHavePages = ['home', 'page1', 'page2'];
-      const hasAllMockPages = mustHavePages.every(id => loadedPages && loadedPages[id]);
-      setPages(
-        loadedPages && Object.keys(loadedPages).length && !loadedPages.error && hasAllMockPages
-          ? loadedPages
-          : mockPages
-      );
+      
+      // Объединяем данные: mock данные + localStorage + сервер
+      let finalWorkspace = mockWorkspace;
+      if (localWorkspace) {
+        finalWorkspace = {
+          ...mockWorkspace,
+          ...localWorkspace,
+          projects: { ...mockWorkspace.projects, ...localWorkspace.projects }
+        };
+      } else if (loadedWorkspace && loadedWorkspace.projects && Object.keys(loadedWorkspace.projects).length) {
+        finalWorkspace = {
+          ...mockWorkspace,
+          ...loadedWorkspace,
+          projects: { ...mockWorkspace.projects, ...loadedWorkspace.projects }
+        };
+      }
+      
+      let finalPages = mockPages;
+      if (localPages) {
+        finalPages = { ...mockPages, ...localPages };
+      } else if (loadedPages && Object.keys(loadedPages).length && !loadedPages.error) {
+        finalPages = { ...mockPages, ...loadedPages };
+      }
+      
+      setWorkspace(finalWorkspace);
+      setPages(finalPages);
       setLoading(false);
+      
       // Логируем состояние pages после инициализации
       setTimeout(() => {
-        console.log('DEBUG: pages after init:', loadedPages, mockPages);
+        console.log('DEBUG: pages after init:', finalPages);
       }, 100);
     };
     initializeWorkspace();
@@ -1668,7 +1724,11 @@ export const NotionClone = () => {
         }
       ]
     };
-    setPages(prev => ({ ...prev, [newPageId]: newPage }));
+    setPages(prev => {
+      const newPages = { ...prev, [newPageId]: newPage };
+      saveToLocalStorage('irysNote_pages', newPages);
+      return newPages;
+    });
     navigate(`/page/${newPageId}`);
   };
 
@@ -1681,36 +1741,52 @@ export const NotionClone = () => {
       color: '#6B7280',
       pages: []
     };
-    setWorkspace(prev => ({
-      ...prev,
-      projects: { ...prev.projects, [newProjectId]: newProject }
-    }));
+    setWorkspace(prev => {
+      const newWorkspace = {
+        ...prev,
+        projects: { ...prev.projects, [newProjectId]: newProject }
+      };
+      saveToLocalStorage('irysNote_workspace', newWorkspace);
+      return newWorkspace;
+    });
   };
 
   const handleProjectUpdate = (projectId, updatedProject) => {
-    setWorkspace(prev => ({
-      ...prev,
-      projects: {
-        ...prev.projects,
-        [projectId]: updatedProject
-      }
-    }));
+    setWorkspace(prev => {
+      const newWorkspace = {
+        ...prev,
+        projects: {
+          ...prev.projects,
+          [projectId]: updatedProject
+        }
+      };
+      saveToLocalStorage('irysNote_workspace', newWorkspace);
+      return newWorkspace;
+    });
   };
 
   const handleProjectDelete = (projectId) => {
-    setWorkspace(prev => ({
-      ...prev,
-      projects: Object.fromEntries(
-        Object.entries(prev.projects).filter(([id]) => id !== projectId)
-      )
-    }));
+    setWorkspace(prev => {
+      const newWorkspace = {
+        ...prev,
+        projects: Object.fromEntries(
+          Object.entries(prev.projects).filter(([id]) => id !== projectId)
+        )
+      };
+      saveToLocalStorage('irysNote_workspace', newWorkspace);
+      return newWorkspace;
+    });
   };
 
   const handlePageUpdate = (updatedPage) => {
-    setPages(prev => ({
-      ...prev,
-      [updatedPage.id]: { ...updatedPage, lastModified: Date.now() }
-    }));
+    setPages(prev => {
+      const newPages = {
+        ...prev,
+        [updatedPage.id]: { ...updatedPage, lastModified: Date.now() }
+      };
+      saveToLocalStorage('irysNote_pages', newPages);
+      return newPages;
+    });
     setCurrentPage(updatedPage);
   };
 
@@ -1723,6 +1799,15 @@ export const NotionClone = () => {
     setSelectedProjectId(null);
     setCurrentView('home');
     navigate('/');
+  };
+
+  // Функция для сброса данных (очистка localStorage)
+  const resetData = () => {
+    if (window.confirm('Are you sure you want to reset all data? This will clear all pages and projects.')) {
+      localStorage.removeItem('irysNote_workspace');
+      localStorage.removeItem('irysNote_pages');
+      window.location.reload();
+    }
   };
 
   // Показывать модалку подключения кошелька при старте, если не подключен
@@ -1763,6 +1848,7 @@ export const NotionClone = () => {
         onWalletDisconnect={handleWalletDisconnect}
         walletStatus={walletStatus}
         onProjectSelect={handleProjectSelect}
+        onResetData={resetData}
       />
       {currentView === 'page' && currentPage ? (
         <PageEditor
