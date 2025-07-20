@@ -517,7 +517,7 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-800">Connect Wallet</h2>
@@ -2157,7 +2157,7 @@ export const NotionClone = () => {
   return (
     <div className="flex h-screen bg-white">
       <div className="flex-shrink-0">
-      <Sidebar
+            <Sidebar
         workspace={workspace}
         currentPageId={currentPageId}
         onPageSelect={handlePageSelect}
@@ -2165,14 +2165,15 @@ export const NotionClone = () => {
         onNewProject={handleNewProject}
         onProjectUpdate={handleProjectUpdate}
         onProjectDelete={handleProjectDelete}
-          onPageDelete={handlePageDelete}
+        onPageDelete={handlePageDelete}
         currentView={currentView}
         onViewChange={handleViewChange}
         pages={pages}
         onWalletDisconnect={handleWalletDisconnect}
         walletStatus={walletStatus}
         onProjectSelect={handleProjectSelect}
-          onResetData={resetData}
+        onResetData={resetData}
+
       />
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -2195,6 +2196,8 @@ export const NotionClone = () => {
         />
       )}
       </div>
+
+      {/* Wallet Connect Modal */}
       <WalletConnectModal
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
