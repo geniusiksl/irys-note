@@ -140,6 +140,25 @@ const mockProjects = {
   }
 };
 
+// Функции для работы с localStorage
+const saveToLocalStorage = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error('Failed to save to localStorage:', error);
+  }
+};
+
+const loadFromLocalStorage = (key, defaultValue = null) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : defaultValue;
+  } catch (error) {
+    console.error('Failed to load from localStorage:', error);
+    return defaultValue;
+  }
+};
+
 const mockPages = {
   'home': {
     id: 'home',
@@ -329,7 +348,146 @@ const blockTypes = {
   divider: { icon: '—', label: 'Divider', description: 'Visually divide blocks.' },
   callout: { icon: '💡', label: 'Callout', description: 'Make writing stand out.' },
   code: { icon: '{  }', label: 'Code', description: 'Capture a code snippet.' },
-  image: { icon: '🖼️', label: 'Image', description: 'Upload or embed an image.' }
+  image: { icon: '🖼️', label: 'Image', description: 'Upload or embed an image.' },
+  emoji: { icon: '😊', label: 'Emoji', description: 'Add an emoji to your content.' }
+};
+
+// Emoji Picker Component
+const EmojiPicker = ({ isOpen, onClose, onSelect, position }) => {
+  const [filter, setFilter] = useState('');
+  const [category, setCategory] = useState('people');
+  const pickerRef = useRef(null);
+
+  const emojiCategories = {
+    people: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕', '🤑', '🤠'],
+    nature: ['🌱', '🌲', '🌳', '🌴', '🌵', '🌾', '🌿', '☘️', '🍀', '🍁', '🍂', '🍃', '🌺', '🌸', '🌼', '🌻', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🌙', '🌎', '🌍', '🌏', '💫', '⭐', '🌟', '✨', '⚡', '☄️', '💥', '🔥', '🌪️', '🌈', '☀️', '🌤️', '⛅', '🌥️', '☁️', '🌦️', '🌧️', '⛈️', '🌩️', '🌨️', '☃️', '⛄', '❄️', '🌬️', '💨', '💧', '💦', '☔', '☂️', '🌊', '🌫️'],
+    food: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🥑', '🥦', '🥬', '🥒', '🌶️', '🌽', '🥕', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕', '🥪', '🥙', '🧆', '🌮', '🌯', '🥗', '🥘', '🥫', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🦪', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍪', '🌰', '🥜', '🍯', '🥛', '🍼', '☕', '🫖', '🍵', '🧃', '🥤', '🧋', '🍶', '🍺', '🍷', '🥂', '🥃', '🍸', '🍹', '🧉', '🍾', '🥄', '🍴', '🍽️', '🥣', '🥡', '🥢', '🧂'],
+    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️‍♀️', '🏋️', '🏋️‍♂️', '🤼‍♀️', '🤼', '🤼‍♂️', '🤸‍♀️', '🤸', '🤸‍♂️', '⛹️‍♀️', '⛹️', '⛹️‍♂️', '🤺', '🤾‍♀️', '🤾', '🤾‍♂️', '🏊‍♀️', '🏊', '🏊‍♂️', '🤽‍♀️', '🤽', '🤽‍♂️', '🚣‍♀️', '🚣', '🚣‍♂️', '🧗‍♀️', '🧗', '🧗‍♂️', '🚵‍♀️', '🚵', '🚵‍♂️', '🚴‍♀️', '🚴', '🚴‍♂️', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹‍♀️', '🤹', '🤹‍♂️', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🎲', '♟️', '🎯', '🎳', '🎮', '🎰', '🧩', '🎨', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🎮', '🎰', '🎲', '🧩', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻'],
+    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🎮', '🎰', '🎲', '🧩', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '📺', '📻', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🪛', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️', '🧲', '🔫', '💣', '🪃', '🏹', '🛡️', '🪄', '🔮', '🧿', '🪬', '📿', '🧰', '🪛', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️', '🧲', '🔫', '💣', '🪃', '🏹', '🛡️', '🪄', '🔮', '🧿', '🪬', '📿'],
+    symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🛗', '🛂', '🛃', '🛄', '🛅', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️', '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️', '↕️', '↔️', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔄', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '👁️‍🗨️', '🔚', '🔙', '🔛', '🔝', '🔜', '〰️', '➰', '➿', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔺', '🔻', '🔸', '🔹', '🔶', '🔷', '🔳', '🔲', '▪️', '▫️', '◾', '◽', '◼️', '◻️', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜', '🟫', '🔈', '🔇', '🔉', '🔊', '🔔', '🔕', '📣', '📢', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🃏', '🎴', '🀄', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'],
+    flags: ['🏁', '🚩', '🎌', '🏴', '🏳️', '🏳️‍🌈', '🏴‍☠️', '🇦🇨', '🇦🇩', '🇦🇪', '🇦🇫', '🇦🇬', '🇦🇮', '🇦🇱', '🇦🇲', '🇦🇴', '🇦🇶', '🇦🇷', '🇦🇸', '🇦🇹', '🇦🇺', '🇦🇼', '🇦🇽', '🇦🇿', '🇧🇦', '🇧🇧', '🇧🇩', '🇧🇪', '🇧🇫', '🇧🇬', '🇧🇭', '🇧🇮', '🇧🇯', '🇧🇱', '🇧🇲', '🇧🇳', '🇧🇴', '🇧🇶', '🇧🇷', '🇧🇸', '🇧🇹', '🇧🇻', '🇧🇼', '🇧🇾', '🇧🇿', '🇨🇦', '🇨🇨', '🇨🇩', '🇨🇫', '🇨🇬', '🇨🇭', '🇨🇮', '🇨🇰', '🇨🇱', '🇨🇲', '🇨🇳', '🇨🇴', '🇨🇵', '🇨🇷', '🇨🇺', '🇨🇻', '🇨🇼', '🇨🇽', '🇨🇾', '🇨🇿', '🇩🇪', '🇩🇯', '🇩🇰', '🇩🇲', '🇩🇴', '🇩🇿', '🇪🇨', '🇪🇪', '🇪🇬', '🇪🇭', '🇪🇷', '🇪🇸', '🇪🇹', '🇪🇺', '🇫🇮', '🇫🇯', '🇫🇰', '🇫🇲', '🇫🇴', '🇫🇷', '🇬🇦', '🇬🇧', '🇬🇩', '🇬🇬', '🇬🇭', '🇬🇮', '🇬🇱', '🇬🇲', '🇬🇳', '🇬🇵', '🇬🇶', '🇬🇷', '🇬🇸', '🇬🇹', '🇬🇺', '🇬🇼', '🇬🇾', '🇭🇰', '🇭🇲', '🇭🇳', '🇭🇷', '🇭🇹', '🇭🇺', '🇮🇩', '🇮🇪', '🇮🇱', '🇮🇲', '🇮🇳', '🇮🇴', '🇮🇶', '🇮🇷', '🇮🇸', '🇮🇹', '🇯🇪', '🇯🇲', '🇯🇴', '🇯🇵', '🇰🇪', '🇰🇬', '🇰🇭', '🇰🇮', '🇰🇲', '🇰🇳', '🇰🇵', '🇰🇷', '🇰🇼', '🇰🇾', '🇰🇿', '🇱🇦', '🇱🇧', '🇱🇨', '🇱🇮', '🇱🇰', '🇱🇷', '🇱🇸', '🇱🇹', '🇱🇺', '🇱🇻', '🇱🇾', '🇲🇦', '🇲🇨', '🇲🇩', '🇲🇪', '🇲🇫', '🇲🇬', '🇲🇭', '🇲🇰', '🇲🇱', '🇲🇲', '🇲🇳', '🇲🇴', '🇲🇵', '🇲🇶', '🇲🇷', '🇲🇸', '🇲🇹', '🇲🇺', '🇲🇻', '🇲🇼', '🇲🇽', '🇲🇾', '🇲🇿', '🇳🇦', '🇳🇨', '🇳🇪', '🇳🇫', '🇳🇬', '🇳🇮', '🇳🇱', '🇳🇴', '🇳🇵', '🇳🇷', '🇳🇺', '🇳🇿', '🇴🇲', '🇵🇦', '🇵🇪', '🇵🇫', '🇵🇬', '🇵🇭', '🇵🇰', '🇵🇱', '🇵🇲', '🇵🇳', '🇵🇷', '🇵🇸', '🇵🇹', '🇵🇼', '🇵🇾', '🇶🇦', '🇷🇪', '🇷🇴', '🇷🇸', '🇷🇺', '🇷🇼', '🇸🇦', '🇸🇧', '🇸🇨', '🇸🇩', '🇸🇪', '🇸🇬', '🇸🇭', '🇸🇮', '🇸🇯', '🇸🇰', '🇸🇱', '🇸🇲', '🇸🇳', '🇸🇴', '🇸🇷', '🇸🇸', '🇸🇹', '🇸🇻', '🇸🇽', '🇸🇾', '🇸🇿', '🇹🇦', '🇹🇨', '🇹🇩', '🇹🇯', '🇹🇰', '🇹🇱', '🇹🇲', '🇹🇳', '🇹🇴', '🇹🇷', '🇹🇹', '🇹🇻', '🇹🇼', '🇹🇿', '🇺🇦', '🇺🇬', '🇺🇳', '🇺🇸', '🇺🇾', '🇺🇿', '🇻🇦', '🇻🇨', '🇻🇪', '🇻🇬', '🇻🇮', '🇻🇳', '🇻🇺', '🇼🇫', '🇼🇸', '🇾🇪', '🇾🇹', '🇿🇦', '🇿🇲', '🇿🇼']
+  };
+
+  const getFilteredEmojis = () => {
+    const emojis = emojiCategories[category] || [];
+    if (!filter) return emojis;
+    return emojis.filter(emoji => emoji.includes(filter));
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      ref={pickerRef}
+      className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-80 max-h-96 overflow-hidden"
+      style={{ 
+        top: Math.min(position.y, window.innerHeight - 400),
+        left: Math.min(position.x, window.innerWidth - 320)
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex space-x-1">
+          <button
+            onClick={() => setCategory('people')}
+            className={`p-2 rounded ${category === 'people' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            😊
+          </button>
+          <button
+            onClick={() => setCategory('nature')}
+            className={`p-2 rounded ${category === 'nature' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            🌱
+          </button>
+          <button
+            onClick={() => setCategory('food')}
+            className={`p-2 rounded ${category === 'food' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            🍎
+          </button>
+          <button
+            onClick={() => setCategory('activities')}
+            className={`p-2 rounded ${category === 'activities' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            ⚽
+          </button>
+          <button
+            onClick={() => setCategory('objects')}
+            className={`p-2 rounded ${category === 'objects' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            📱
+          </button>
+          <button
+            onClick={() => setCategory('symbols')}
+            className={`p-2 rounded ${category === 'symbols' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            ❤️
+          </button>
+          <button
+            onClick={() => setCategory('flags')}
+            className={`p-2 rounded ${category === 'flags' ? 'bg-blue-100 text-blue-600' : 'hover:bg-gray-100'}`}
+          >
+            🏁
+          </button>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-1 hover:bg-gray-100 rounded"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="relative mb-2">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        <input
+          type="text"
+          placeholder="Filter..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          autoFocus
+        />
+      </div>
+
+      {/* Emoji Grid */}
+      <div className="grid grid-cols-8 gap-1 max-h-64 overflow-y-auto">
+        {getFilteredEmojis().map((emoji, index) => (
+          <button
+            key={index}
+            onClick={() => onSelect(emoji)}
+            className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 rounded transition-colors"
+          >
+            {emoji}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 // Wallet Connection Modal Component
@@ -444,7 +602,9 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
   const [content, setContent] = useState(block.content);
   const [showBlockMenu, setShowBlockMenu] = useState(false);
   const [showTypeSelector, setShowTypeSelector] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [typeSelectorPosition, setTypeSelectorPosition] = useState({ x: 0, y: 0 });
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState({ x: 0, y: 0 });
   const textareaRef = useRef(null);
   const blockRef = useRef(null);
 
@@ -477,11 +637,19 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         y: rect.bottom + 5
       });
       setShowTypeSelector(true);
+    } else if (newContent.startsWith('/emoji')) {
+      const rect = e.target.getBoundingClientRect();
+      setEmojiPickerPosition({
+        x: rect.left,
+        y: rect.bottom + 5
+      });
+      setShowEmojiPicker(true);
     } else if (newContent.startsWith('/image')) {
       // Handle image command
       const imageUrl = prompt('Enter image URL:');
       if (imageUrl) {
         updateBlock(block.id, { type: 'image', content: imageUrl });
+        setContent(''); // Clear the /image command
       } else {
         // If user cancels, keep the /image text for editing
         setContent('/image');
@@ -493,6 +661,8 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
       setShowTypeSelector(false);
     } else if (showTypeSelector && !newContent.startsWith('/')) {
       setShowTypeSelector(false);
+    } else if (showEmojiPicker && !newContent.startsWith('/')) {
+      setShowEmojiPicker(false);
     }
   };
 
@@ -537,8 +707,36 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
   };
 
   const handleBlockTypeChange = (newType) => {
-    updateBlock(block.id, { type: newType, content: content.replace('/', '') });
     setShowTypeSelector(false);
+    
+    if (newType === 'emoji') {
+      // Show emoji picker for emoji block type
+      const rect = textareaRef.current?.getBoundingClientRect();
+      if (rect) {
+        setEmojiPickerPosition({
+          x: rect.left,
+          y: rect.bottom + 2
+        });
+        setShowEmojiPicker(true);
+      }
+    } else {
+      // Update block type for other types
+      updateBlock(block.id, { type: newType, content: content.replace('/', '') });
+      setContent(''); // Clear the / command
+      // Focus the textarea after a short delay to ensure cursor appears
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.setSelectionRange(textareaRef.current.value.length, textareaRef.current.value.length);
+        }
+      }, 10);
+    }
+  };
+
+  const handleEmojiSelect = (emoji) => {
+    updateBlock(block.id, { content: emoji });
+    setShowEmojiPicker(false);
+    setContent(''); // Clear the /emoji command
   };
 
   const handleTodoToggle = () => {
@@ -584,12 +782,13 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         <div className="relative">
           <textarea
             ref={textareaRef}
+            data-block-id={block.id}
             value={content}
             onChange={handleContentChange}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             onBlur={handleBlur}
-            className="w-full bg-transparent border-none outline-none resize-none overflow-hidden min-h-[1.5rem]"
+            className="w-full bg-transparent border-none outline-none resize-none overflow-hidden min-h-[1.5rem] cursor-text"
             style={{ 
               fontFamily: 'inherit',
               fontSize: 'inherit',
@@ -602,6 +801,14 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
               onSelect={handleBlockTypeChange}
               onClose={() => setShowTypeSelector(false)}
               position={typeSelectorPosition}
+            />
+          )}
+          {showEmojiPicker && (
+            <EmojiPicker
+              isOpen={showEmojiPicker}
+              onClose={() => setShowEmojiPicker(false)}
+              onSelect={handleEmojiSelect}
+              position={emojiPickerPosition}
             />
           )}
         </div>
@@ -712,6 +919,12 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
                 <p>Click to add an image</p>
                 <p className="text-sm">Type /image or paste a URL</p>
               </div>
+          </div>
+        );
+      case 'emoji':
+        return (
+          <div className={`text-4xl ${baseClasses}`} onClick={handleClick}>
+            {content || '😊'}
           </div>
         );
       default:
@@ -847,7 +1060,7 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
 };
 
 // Sidebar Component
-const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange, onProjectUpdate, onProjectDelete, pages, onWalletDisconnect, walletStatus, onProjectSelect }) => {
+const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange, onProjectUpdate, onProjectDelete, onPageDelete, pages, onWalletDisconnect, walletStatus, onProjectSelect, onResetData }) => {
   const [expandedProjects, setExpandedProjects] = useState(new Set(['personal', 'work']));
   const [searchTerm, setSearchTerm] = useState('');
   const [irysStatus, setIrysStatus] = useState('ready');
@@ -949,20 +1162,38 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
         .slice(0, 10);
     }
     
-    return allPages.filter(page =>
-      page.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // Apply search filter if search term exists
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      return allPages.filter(page => {
+        const titleLower = page.title.toLowerCase();
+        // Strict search: letters must be in order as typed by user
+        return titleLower.includes(searchLower);
+      });
+    }
+    
+    return allPages;
   };
 
   // Исправлено: показываем все страницы с projectId = projectId
   const getProjectPages = (projectId) => {
-    const filtered = Object.values(pages || {}).filter(page => page.projectId === projectId);
-    console.log('DEBUG: Sidebar getProjectPages', { projectId, allPages: pages, filtered });
+    let filtered = Object.values(pages || {}).filter(page => page.projectId === projectId);
+    
+    // Apply search filter if search term exists
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(page => {
+        const titleLower = page.title.toLowerCase();
+        // Strict search: letters must be in order as typed by user
+        return titleLower.includes(searchLower);
+      });
+    }
+    
     return filtered;
   };
 
   return (
-    <div className="w-64 bg-gray-50 border-r border-gray-200 h-screen flex flex-col overflow-hidden">
+    <div className="w-80 bg-gray-50 border-r border-gray-200 h-screen flex flex-col overflow-hidden sticky top-0">
       {/* Workspace Header */}
       <div className="p-4 border-b border-gray-200">
         <div className="flex items-center gap-2 mb-4">
@@ -1183,14 +1414,24 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
                     {getProjectPages(project.id).map((page) => (
                       <div 
                         key={page.id}
-                        className={`flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer ${
+                        className={`group flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer ${
                           currentPageId === page.id ? 'bg-blue-100' : ''
                         }`}
                         onClick={() => onPageSelect(page.id)}
                       >
                         <span className="text-sm">{page.icon}</span>
-                        <span className="text-sm flex-1 truncate">{page.title}</span>
+                        <span className="text-sm flex-1 break-words" style={{ wordBreak: 'break-word', overflow: 'visible' }}>{page.title}</span>
                         {page.isFavorite && <Star className="w-3 h-3 text-yellow-500 fill-current" />}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onPageDelete(page.id);
+                          }}
+                          className="p-1 hover:bg-red-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Delete page"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -1198,6 +1439,20 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Settings Section */}
+      <div className="p-4 border-t border-gray-200">
+        <div className="space-y-1">
+          <button
+            onClick={onResetData}
+            className="w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
+            title="Reset all data"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Reset Data</span>
+          </button>
         </div>
       </div>
 
@@ -1216,6 +1471,8 @@ const PageEditor = ({ page, onPageUpdate }) => {
   const [editingBlock, setEditingBlock] = useState(null);
   const [showBlockSelector, setShowBlockSelector] = useState(false);
   const [blockSelectorPosition, setBlockSelectorPosition] = useState({ x: 0, y: 0 });
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState({ x: 0, y: 0 });
   const [currentBlocks, setCurrentBlocks] = useState(page.blocks || []);
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saved', 'saving', 'error'
   const [lastSaved, setLastSaved] = useState(null);
@@ -1232,6 +1489,8 @@ const PageEditor = ({ page, onPageUpdate }) => {
     const interval = setInterval(checkWalletStatus, 5000); // Check every 5 seconds
     return () => clearInterval(interval);
   }, []);
+
+
 
 
    
@@ -1297,11 +1556,35 @@ const PageEditor = ({ page, onPageUpdate }) => {
   };
 
   const handleBlockTypeSelect = (blockType) => {
+    setShowBlockSelector(false);
+    
+    if (blockType === 'emoji') {
+      // Show emoji picker for emoji block type
+      const rect = editingBlock?.getBoundingClientRect();
+      if (rect) {
+        setEmojiPickerPosition({
+          x: rect.left,
+          y: rect.bottom + 2
+        });
+        setShowEmojiPicker(true);
+      }
+    } else {
+      // Update block type for other types
     if (editingBlock) {
       updateBlock(editingBlock, { type: blockType });
+        // Focus the textarea after a short delay to ensure cursor appears
+        setTimeout(() => {
+          const textarea = document.querySelector(`[data-block-id="${editingBlock}"] textarea`);
+          if (textarea) {
+            textarea.focus();
+            textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+          }
+        }, 10);
+      }
     }
-    setShowBlockSelector(false);
   };
+
+
 
   const handleManualSave = async () => {
     if (!walletStatus?.connected) {
@@ -1326,10 +1609,26 @@ const PageEditor = ({ page, onPageUpdate }) => {
     onPageUpdate(updatedPage);
   };
 
+  const handlePageIconClick = (e) => {
+    e.stopPropagation();
+    const rect = e.target.getBoundingClientRect();
+    setEmojiPickerPosition({
+      x: rect.left,
+      y: rect.bottom + 5
+    });
+    setShowEmojiPicker(true);
+  };
+
+  const handlePageEmojiSelect = (emoji) => {
+    const updatedPage = { ...page, icon: emoji };
+    onPageUpdate(updatedPage);
+    setShowEmojiPicker(false);
+  };
+
   return (
     <div className="flex-1 bg-white">
       {/* Page Header */}
-      <div className="border-b border-gray-200 p-6">
+      <div className="border-b border-gray-200 p-1">
         <div className="max-w-4xl mx-auto">
           {/* Save Status Bar */}
           <div className="flex items-center justify-between mb-4">
@@ -1340,9 +1639,9 @@ const PageEditor = ({ page, onPageUpdate }) => {
                 saveStatus === 'error' ? 'bg-red-500' : 'bg-gray-500'
               }`}></div>
               <span>
-                {saveStatus === 'saved' && lastSaved ? `Saved at ${lastSaved}` :
+                {saveStatus === 'saved' && lastSaved ? `Saved to Irys at ${lastSaved}` :
                  saveStatus === 'saving' ? 'Saving to Irys...' :
-                 saveStatus === 'error' ? 'Save failed' : 'Unsaved changes'}
+                 saveStatus === 'error' ? 'Irys save failed' : 'Local changes saved'}
               </span>
             </div>
             
@@ -1373,21 +1672,38 @@ const PageEditor = ({ page, onPageUpdate }) => {
               
               <div className="flex items-center gap-1 text-xs text-gray-500">
                 <Zap className="w-3 h-3" />
-                <span>Manual save only</span>
+                <span>Local auto-save</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 mb-4 w-full min-w-0">
-            <span className="text-4xl flex-shrink-0">{page.icon}</span>
-            <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-4 mb-3 w-full min-w-0">
+            <button
+              onClick={handlePageIconClick}
+              className="text-4xl flex-shrink-0 hover:bg-gray-100 rounded-lg p-3 transition-colors cursor-pointer"
+              title="Click to change emoji"
+            >
+              {page.icon}
+            </button>
+            <div className="flex-1 min-w-0 pr-8">
               <input
                 type="text"
                 value={page.title}
                 onChange={handlePageTitleChange}
                 className="text-4xl font-bold bg-transparent border-none outline-none w-full min-w-0 placeholder-gray-400 focus:bg-blue-50 transition-colors"
                 placeholder="Click to edit title"
-                style={{ wordBreak: 'break-word', overflow: 'visible' }}
+                style={{ 
+                  wordBreak: 'break-word', 
+                  overflow: 'visible', 
+                  maxWidth: 'none',
+                  lineHeight: '1.28',
+                  padding: '7px 0',
+                  margin: '0',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  display: 'block',
+                  minHeight: '95px'
+                }}
               />
             </div>
           </div>
@@ -1444,12 +1760,22 @@ const PageEditor = ({ page, onPageUpdate }) => {
           position={blockSelectorPosition}
         />
       )}
+      
+      {/* Emoji Picker */}
+      {showEmojiPicker && (
+        <EmojiPicker
+          isOpen={showEmojiPicker}
+          onClose={() => setShowEmojiPicker(false)}
+          onSelect={handlePageEmojiSelect}
+          position={emojiPickerPosition}
+        />
+      )}
     </div>
   );
 };
 
 // Main View Component for different sections
-const MainView = ({ view, pages, onPageSelect, onNewPage, workspace, selectedProjectId, onProjectSelect }) => {
+const MainView = ({ view, pages, onPageSelect, onNewPage, onPageDelete, workspace, selectedProjectId, onProjectSelect }) => {
   const getViewTitle = () => {
     switch (view) {
       case 'home': return 'Home';
@@ -1531,12 +1857,15 @@ const MainView = ({ view, pages, onPageSelect, onNewPage, workspace, selectedPro
               {viewPages.map((page) => (
                 <div
                   key={page.id}
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer group relative"
+                >
+                  <div
                   onClick={() => onPageSelect(page.id)}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    className="cursor-pointer"
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-2xl">{page.icon}</span>
-                    <h3 className="font-medium text-gray-800 flex-1 truncate">{page.title}</h3>
+                      <h3 className="font-medium text-gray-800 flex-1 break-words" style={{ wordBreak: 'break-word', overflow: 'visible' }}>{page.title}</h3>
                     {page.isFavorite && <Star className="w-4 h-4 text-yellow-500 fill-current" />}
                   </div>
                   <p className="text-sm text-gray-500 mb-2">
@@ -1547,6 +1876,17 @@ const MainView = ({ view, pages, onPageSelect, onNewPage, workspace, selectedPro
                       ? `Modified ${new Date(page.lastModified).toLocaleDateString()}`
                       : `${page.blocks?.length || 0} blocks`}
                   </p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPageDelete(page.id);
+                    }}
+                    className="absolute top-2 right-2 p-1 hover:bg-red-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Delete page"
+                  >
+                    <Trash2 className="w-4 h-4 text-red-500" />
+                  </button>
                 </div>
               ))}
             </div>
@@ -1576,8 +1916,14 @@ export const NotionClone = () => {
   // Инициализация и загрузка данных
   useEffect(() => {
     const initializeWorkspace = async () => {
+      // Сначала загружаем из localStorage
+      const localWorkspace = loadFromLocalStorage('irysNote_workspace', null);
+      const localPages = loadFromLocalStorage('irysNote_pages', null);
+      
       let loadedWorkspace = null;
       let loadedPages = null;
+      
+      // Пытаемся загрузить с сервера/Irys
       try {
         loadedWorkspace = await irysService.loadWorkspace();
       } catch (e) {
@@ -1588,24 +1934,37 @@ export const NotionClone = () => {
       } catch (e) {
         loadedPages = null;
       }
-      // Исправленная логика:
-      setWorkspace(
-        loadedWorkspace && loadedWorkspace.projects && Object.keys(loadedWorkspace.projects).length
-          ? loadedWorkspace
-          : mockWorkspace
-      );
-      // Проверяем, есть ли все ключевые mock-страницы в ответе сервера
-      const mustHavePages = ['home', 'page1', 'page2'];
-      const hasAllMockPages = mustHavePages.every(id => loadedPages && loadedPages[id]);
-      setPages(
-        loadedPages && Object.keys(loadedPages).length && !loadedPages.error && hasAllMockPages
-          ? loadedPages
-          : mockPages
-      );
+      
+      // Объединяем данные: mock данные + localStorage + сервер
+      let finalWorkspace = mockWorkspace;
+      if (localWorkspace) {
+        finalWorkspace = {
+          ...mockWorkspace,
+          ...localWorkspace,
+          projects: { ...mockWorkspace.projects, ...localWorkspace.projects }
+        };
+      } else if (loadedWorkspace && loadedWorkspace.projects && Object.keys(loadedWorkspace.projects).length) {
+        finalWorkspace = {
+          ...mockWorkspace,
+          ...loadedWorkspace,
+          projects: { ...mockWorkspace.projects, ...loadedWorkspace.projects }
+        };
+      }
+      
+      let finalPages = mockPages;
+      if (localPages) {
+        finalPages = { ...mockPages, ...localPages };
+      } else if (loadedPages && Object.keys(loadedPages).length && !loadedPages.error) {
+        finalPages = { ...mockPages, ...loadedPages };
+      }
+      
+      setWorkspace(finalWorkspace);
+      setPages(finalPages);
       setLoading(false);
+      
       // Логируем состояние pages после инициализации
       setTimeout(() => {
-        console.log('DEBUG: pages after init:', loadedPages, mockPages);
+        console.log('DEBUG: pages after init:', finalPages);
       }, 100);
     };
     initializeWorkspace();
@@ -1668,7 +2027,11 @@ export const NotionClone = () => {
         }
       ]
     };
-    setPages(prev => ({ ...prev, [newPageId]: newPage }));
+    setPages(prev => {
+      const newPages = { ...prev, [newPageId]: newPage };
+      saveToLocalStorage('irysNote_pages', newPages);
+      return newPages;
+    });
     navigate(`/page/${newPageId}`);
   };
 
@@ -1681,37 +2044,72 @@ export const NotionClone = () => {
       color: '#6B7280',
       pages: []
     };
-    setWorkspace(prev => ({
+    setWorkspace(prev => {
+      const newWorkspace = {
       ...prev,
       projects: { ...prev.projects, [newProjectId]: newProject }
-    }));
+      };
+      saveToLocalStorage('irysNote_workspace', newWorkspace);
+      return newWorkspace;
+    });
   };
 
   const handleProjectUpdate = (projectId, updatedProject) => {
-    setWorkspace(prev => ({
+    setWorkspace(prev => {
+      const newWorkspace = {
       ...prev,
       projects: {
         ...prev.projects,
         [projectId]: updatedProject
       }
-    }));
+      };
+      saveToLocalStorage('irysNote_workspace', newWorkspace);
+      return newWorkspace;
+    });
   };
 
   const handleProjectDelete = (projectId) => {
-    setWorkspace(prev => ({
+    setWorkspace(prev => {
+      const newWorkspace = {
       ...prev,
       projects: Object.fromEntries(
         Object.entries(prev.projects).filter(([id]) => id !== projectId)
       )
-    }));
+      };
+      saveToLocalStorage('irysNote_workspace', newWorkspace);
+      return newWorkspace;
+    });
   };
 
   const handlePageUpdate = (updatedPage) => {
-    setPages(prev => ({
+    setPages(prev => {
+      const newPages = {
       ...prev,
       [updatedPage.id]: { ...updatedPage, lastModified: Date.now() }
-    }));
+      };
+      saveToLocalStorage('irysNote_pages', newPages);
+      return newPages;
+    });
     setCurrentPage(updatedPage);
+  };
+
+  const handlePageDelete = (pageId) => {
+    if (window.confirm('Are you sure you want to delete this page? This action cannot be undone.')) {
+      setPages(prev => {
+        const newPages = { ...prev };
+        delete newPages[pageId];
+        saveToLocalStorage('irysNote_pages', newPages);
+        return newPages;
+      });
+      
+      // If we're currently on the deleted page, navigate to home
+      if (currentPageId === pageId) {
+        setCurrentPageId(null);
+        setCurrentPage(null);
+        setCurrentView('home');
+        navigate('/');
+      }
+    }
   };
 
   const handleWalletDisconnect = async () => {
@@ -1723,6 +2121,15 @@ export const NotionClone = () => {
     setSelectedProjectId(null);
     setCurrentView('home');
     navigate('/');
+  };
+
+  // Функция для сброса данных (очистка localStorage)
+  const resetData = () => {
+    if (window.confirm('Are you sure you want to reset all data? This will clear all pages and projects.')) {
+      localStorage.removeItem('irysNote_workspace');
+      localStorage.removeItem('irysNote_pages');
+      window.location.reload();
+    }
   };
 
   // Показывать модалку подключения кошелька при старте, если не подключен
@@ -1749,6 +2156,7 @@ export const NotionClone = () => {
 
   return (
     <div className="flex h-screen bg-white">
+      <div className="flex-shrink-0">
       <Sidebar
         workspace={workspace}
         currentPageId={currentPageId}
@@ -1757,13 +2165,17 @@ export const NotionClone = () => {
         onNewProject={handleNewProject}
         onProjectUpdate={handleProjectUpdate}
         onProjectDelete={handleProjectDelete}
+          onPageDelete={handlePageDelete}
         currentView={currentView}
         onViewChange={handleViewChange}
         pages={pages}
         onWalletDisconnect={handleWalletDisconnect}
         walletStatus={walletStatus}
         onProjectSelect={handleProjectSelect}
+          onResetData={resetData}
       />
+      </div>
+      <div className="flex-1 overflow-y-auto">
       {currentView === 'page' && currentPage ? (
         <PageEditor
           key={currentPage.id}
@@ -1776,11 +2188,13 @@ export const NotionClone = () => {
           pages={Object.values(pages)}
           onPageSelect={handlePageSelect}
           onNewPage={handleNewPage}
+            onPageDelete={handlePageDelete}
           workspace={workspace}
           selectedProjectId={selectedProjectId}
           onProjectSelect={handleProjectSelect}
         />
       )}
+      </div>
       <WalletConnectModal
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
