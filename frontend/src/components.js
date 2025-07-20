@@ -401,7 +401,7 @@ const EmojiPicker = ({ isOpen, onClose, onSelect, position }) => {
   return (
     <div 
       ref={pickerRef}
-      className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-80 max-h-96 overflow-hidden"
+      className="fixed z-[9998] bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-80 max-h-96 overflow-hidden"
       style={{ 
         top: Math.min(position.y, window.innerHeight - 400),
         left: Math.min(position.x, window.innerWidth - 320)
@@ -495,6 +495,31 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, onClose]);
+
   const handleConnectWallet = async () => {
     setIsConnecting(true);
     setError('');
@@ -517,8 +542,8 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 relative" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-800">Connect Wallet</h2>
           <button
@@ -1020,7 +1045,7 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
   return (
     <div 
       ref={selectorRef}
-      className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-80 max-h-96 overflow-y-auto"
+      className="fixed z-[9998] bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-80 max-h-96 overflow-y-auto"
       style={{ 
         top: Math.min(position.y, window.innerHeight - 400),
         left: Math.min(position.x, window.innerWidth - 320)
@@ -1060,12 +1085,11 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
 };
 
 // Sidebar Component
-const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange, onProjectUpdate, onProjectDelete, onPageDelete, pages, onWalletDisconnect, walletStatus, onProjectSelect, onResetData }) => {
+const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange, onProjectUpdate, onProjectDelete, onPageDelete, pages, onWalletDisconnect, walletStatus, onProjectSelect, onResetData, onWalletConnect, setShowWalletModal }) => {
   const [expandedProjects, setExpandedProjects] = useState(new Set(['personal', 'work']));
   const [searchTerm, setSearchTerm] = useState('');
   const [irysStatus, setIrysStatus] = useState('ready');
   const [storageStats, setStorageStats] = useState(null);
-  const [showWalletModal, setShowWalletModal] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [editingProjectName, setEditingProjectName] = useState('');
   const [editingProjectIcon, setEditingProjectIcon] = useState('');
@@ -1145,8 +1169,7 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
   };
 
   const handleWalletConnect = (address) => {
-    // This function is now passed as a prop, so it doesn't need to set state here.
-    // The walletStatus prop will handle the display.
+    onWalletConnect(address);
   };
 
   const getFilteredPages = () => {
@@ -1456,12 +1479,6 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
         </div>
       </div>
 
-      {/* Wallet Connect Modal */}
-      <WalletConnectModal
-        isOpen={showWalletModal}
-        onClose={() => setShowWalletModal(false)}
-        onConnect={handleWalletConnect}
-      />
     </div>
   );
 };
@@ -2123,6 +2140,11 @@ export const NotionClone = () => {
     navigate('/');
   };
 
+  const handleWalletConnect = (address) => {
+    setWalletStatus({ connected: true, address });
+    setShowWalletModal(false);
+  };
+
   // Функция для сброса данных (очистка localStorage)
   const resetData = () => {
     if (window.confirm('Are you sure you want to reset all data? This will clear all pages and projects.')) {
@@ -2173,7 +2195,8 @@ export const NotionClone = () => {
         walletStatus={walletStatus}
         onProjectSelect={handleProjectSelect}
         onResetData={resetData}
-
+        onWalletConnect={handleWalletConnect}
+        setShowWalletModal={setShowWalletModal}
       />
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -2201,10 +2224,7 @@ export const NotionClone = () => {
       <WalletConnectModal
         isOpen={showWalletModal}
         onClose={() => setShowWalletModal(false)}
-        onConnect={(address) => {
-          setWalletStatus({ connected: true, address });
-          setShowWalletModal(false);
-        }}
+        onConnect={handleWalletConnect}
       />
     </div>
   );
