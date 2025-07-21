@@ -349,7 +349,8 @@ const blockTypes = {
   callout: { icon: '💡', label: 'Callout', description: 'Make writing stand out.' },
   code: { icon: '{  }', label: 'Code', description: 'Capture a code snippet.' },
   image: { icon: '🖼️', label: 'Image', description: 'Upload or embed an image.' },
-  emoji: { icon: '😊', label: 'Emoji', description: 'Add an emoji to your content.' }
+  emoji: { icon: '😊', label: 'Emoji', description: 'Add an emoji to your content.' },
+  database: { icon: '📊', label: 'Database', description: 'Add a table/database to your page.' },
 };
 
 // Emoji Picker Component
@@ -364,7 +365,7 @@ const EmojiPicker = ({ isOpen, onClose, onSelect, position }) => {
     food: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🥑', '🥦', '🥬', '🥒', '🌶️', '🌽', '🥕', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🧇', '🥓', '🥩', '🍗', '🍖', '🦴', '🌭', '🍔', '🍟', '🍕', '🥪', '🥙', '🧆', '🌮', '🌯', '🥗', '🥘', '🥫', '🍝', '🍜', '🍲', '🍛', '🍣', '🍱', '🥟', '🦪', '🍤', '🍙', '🍚', '🍘', '🍥', '🥠', '🍢', '🍡', '🍧', '🍨', '🍦', '🥧', '🧁', '🍰', '🎂', '🍮', '🍭', '🍬', '🍫', '🍿', '🍪', '🌰', '🥜', '🍯', '🥛', '🍼', '☕', '🫖', '🍵', '🧃', '🥤', '🧋', '🍶', '🍺', '🍷', '🥂', '🥃', '🍸', '🍹', '🧉', '🍾', '🥄', '🍴', '🍽️', '🥣', '🥡', '🥢', '🧂'],
     activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛷', '⛸️', '🥌', '🎿', '⛷️', '🏂', '🪂', '🏋️‍♀️', '🏋️', '🏋️‍♂️', '🤼‍♀️', '🤼', '🤼‍♂️', '🤸‍♀️', '🤸', '🤸‍♂️', '⛹️‍♀️', '⛹️', '⛹️‍♂️', '🤺', '🤾‍♀️', '🤾', '🤾‍♂️', '🏊‍♀️', '🏊', '🏊‍♂️', '🤽‍♀️', '🤽', '🤽‍♂️', '🚣‍♀️', '🚣', '🚣‍♂️', '🧗‍♀️', '🧗', '🧗‍♂️', '🚵‍♀️', '🚵', '🚵‍♂️', '🚴‍♀️', '🚴', '🚴‍♂️', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🏵️', '🎗️', '🎫', '🎟️', '🎪', '🤹‍♀️', '🤹', '🤹‍♂️', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '🎲', '♟️', '🎯', '🎳', '🎮', '🎰', '🧩', '🎨', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🎮', '🎰', '🎲', '🧩', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻'],
     objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥️', '🖨️', '🖱️', '🖲️', '🕹️', '🎮', '🎰', '🎲', '🧩', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺', '🎸', '🪕', '🎻', '📺', '📻', '📷', '📸', '📹', '🎥', '📽️', '🎞️', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙️', '🎚️', '🎛️', '🧭', '⏱️', '⏲️', '⏰', '🕰️', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯️', '🪔', '🧯', '🛢️', '💸', '💵', '💴', '💶', '💷', '🪙', '💰', '💳', '💎', '⚖️', '🪜', '🧰', '🪛', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️', '🧲', '🔫', '💣', '🪃', '🏹', '🛡️', '🪄', '🔮', '🧿', '🪬', '📿', '🧰', '🪛', '🔧', '🔨', '⚒️', '🛠️', '⛏️', '🪚', '🔩', '⚙️', '🪤', '🧱', '⛓️', '🧲', '🔫', '💣', '🪃', '🏹', '🛡️', '🪄', '🔮', '🧿', '🪬', '📿'],
-    symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '🈷️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🛗', '🛂', '🛃', '🛄', '🛅', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️', '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️', '↕️', '↔️', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔄', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '👁️‍🗨️', '🔚', '🔙', '🔛', '🔝', '🔜', '〰️', '➰', '➿', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔺', '🔻', '🔸', '🔹', '🔶', '🔷', '🔳', '🔲', '▪️', '▫️', '◾', '◽', '◼️', '◻️', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜', '🟫', '🔈', '🔇', '🔉', '🔊', '🔔', '🔕', '📣', '📢', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🃏', '🎴', '🀄', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'],
+    symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '✝️', '☪️', '🕉️', '☸️', '✡️', '🔯', '🕎', '☯️', '☦️', '🛐', '⛎', '♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓', '🆔', '⚛️', '🉑', '☢️', '☣️', '📴', '📳', '🈶', '🈚', '🈸', '🈺', '��️', '✴️', '🆚', '💮', '🉐', '㊙️', '㊗️', '🈴', '🈵', '🈹', '🈲', '🅰️', '🅱️', '🆎', '🆑', '🅾️', '🆘', '❌', '⭕', '🛑', '⛔', '📛', '🚫', '💯', '💢', '♨️', '🚷', '🚯', '🚳', '🚱', '🔞', '📵', '🚭', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔅', '🔆', '〽️', '⚠️', '🚸', '🔱', '⚜️', '🔰', '♻️', '✅', '🈯', '💹', '❇️', '✳️', '❎', '🌐', '💠', 'Ⓜ️', '🌀', '💤', '🏧', '🚾', '♿', '🅿️', '🛗', '🛂', '🛃', '🛄', '🛅', '🚹', '🚺', '🚼', '🚻', '🚮', '🎦', '📶', '🈁', '🔣', 'ℹ️', '🔤', '🔡', '🔠', '🆖', '🆗', '🆙', '🆒', '🆕', '🆓', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟', '🔢', '#️⃣', '*️⃣', '⏏️', '▶️', '⏸️', '⏯️', '⏹️', '⏺️', '⏭️', '⏮️', '⏩', '⏪', '⏫', '⏬', '◀️', '🔼', '🔽', '➡️', '⬅️', '⬆️', '⬇️', '↗️', '↘️', '↙️', '↖️', '↕️', '↔️', '↪️', '↩️', '⤴️', '⤵️', '🔀', '🔁', '🔂', '🔄', '🔃', '🎵', '🎶', '➕', '➖', '➗', '✖️', '♾️', '💲', '💱', '™️', '©️', '®️', '👁️‍🗨️', '🔚', '🔙', '🔛', '🔝', '🔜', '〰️', '➰', '➿', '✔️', '☑️', '🔘', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔺', '🔻', '🔸', '🔹', '🔶', '🔷', '🔳', '🔲', '▪️', '▫️', '◾', '◽', '◼️', '◻️', '🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛', '⬜', '🟫', '🔈', '🔇', '🔉', '🔊', '🔔', '🔕', '📣', '📢', '💬', '💭', '🗯️', '♠️', '♣️', '♥️', '♦️', '🃏', '🎴', '🀄', '🕐', '🕑', '🕒', '🕓', '🕔', '🕕', '🕖', '🕗', '🕘', '🕙', '🕚', '🕛', '🕜', '🕝', '🕞', '🕟', '🕠', '🕡', '🕢', '🕣', '🕤', '🕥', '🕦', '🕧'],
     flags: ['🏁', '🚩', '🎌', '🏴', '🏳️', '🏳️‍🌈', '🏴‍☠️', '🇦🇨', '🇦🇩', '🇦🇪', '🇦🇫', '🇦🇬', '🇦🇮', '🇦🇱', '🇦🇲', '🇦🇴', '🇦🇶', '🇦🇷', '🇦🇸', '🇦🇹', '🇦🇺', '🇦🇼', '🇦🇽', '🇦🇿', '🇧🇦', '🇧🇧', '🇧🇩', '🇧🇪', '🇧🇫', '🇧🇬', '🇧🇭', '🇧🇮', '🇧🇯', '🇧🇱', '🇧🇲', '🇧🇳', '🇧🇴', '🇧🇶', '🇧🇷', '🇧🇸', '🇧🇹', '🇧🇻', '🇧🇼', '🇧🇾', '🇧🇿', '🇨🇦', '🇨🇨', '🇨🇩', '🇨🇫', '🇨🇬', '🇨🇭', '🇨🇮', '🇨🇰', '🇨🇱', '🇨🇲', '🇨🇳', '🇨🇴', '🇨🇵', '🇨🇷', '🇨🇺', '🇨🇻', '🇨🇼', '🇨🇽', '🇨🇾', '🇨🇿', '🇩🇪', '🇩🇯', '🇩🇰', '🇩🇲', '🇩🇴', '🇩🇿', '🇪🇨', '🇪🇪', '🇪🇬', '🇪🇭', '🇪🇷', '🇪🇸', '🇪🇹', '🇪🇺', '🇫🇮', '🇫🇯', '🇫🇰', '🇫🇲', '🇫🇴', '🇫🇷', '🇬🇦', '🇬🇧', '🇬🇩', '🇬🇬', '🇬🇭', '🇬🇮', '🇬🇱', '🇬🇲', '🇬🇳', '🇬🇵', '🇬🇶', '🇬🇷', '🇬🇸', '🇬🇹', '🇬🇺', '🇬🇼', '🇬🇾', '🇭🇰', '🇭🇲', '🇭🇳', '🇭🇷', '🇭🇹', '🇭🇺', '🇮🇩', '🇮🇪', '🇮🇱', '🇮🇲', '🇮🇳', '🇮🇴', '🇮🇶', '🇮🇷', '🇮🇸', '🇮🇹', '🇯🇪', '🇯🇲', '🇯🇴', '🇯🇵', '🇰🇪', '🇰🇬', '🇰🇭', '🇰🇮', '🇰🇲', '🇰🇳', '🇰🇵', '🇰🇷', '🇰🇼', '🇰🇾', '🇰🇿', '🇱🇦', '🇱🇧', '🇱🇨', '🇱🇮', '🇱🇰', '🇱🇷', '🇱🇸', '🇱🇹', '🇱🇺', '🇱🇻', '🇱🇾', '🇲🇦', '🇲🇨', '🇲🇩', '🇲🇪', '🇲🇫', '🇲🇬', '🇲🇭', '🇲🇰', '🇲🇱', '🇲🇲', '🇲🇳', '🇲🇴', '🇲🇵', '🇲🇶', '🇲🇷', '🇲🇸', '🇲🇹', '🇲🇺', '🇲🇻', '🇲🇼', '🇲🇽', '🇲🇾', '🇲🇿', '🇳🇦', '🇳🇨', '🇳🇪', '🇳🇫', '🇳🇬', '🇳🇮', '🇳🇱', '🇳🇴', '🇳🇵', '🇳🇷', '🇳🇺', '🇳🇿', '🇴🇲', '🇵🇦', '🇵🇪', '🇵🇫', '🇵🇬', '🇵🇭', '🇵🇰', '🇵🇱', '🇵🇲', '🇵🇳', '🇵🇷', '🇵🇸', '🇵🇹', '🇵🇼', '🇵🇾', '🇶🇦', '🇷🇪', '🇷🇴', '🇷🇸', '🇷🇺', '🇷🇼', '🇸🇦', '🇸🇧', '🇸🇨', '🇸🇩', '🇸🇪', '🇸🇬', '🇸🇭', '🇸🇮', '🇸🇯', '🇸🇰', '🇸🇱', '🇸🇲', '🇸🇳', '🇸🇴', '🇸🇷', '🇸🇸', '🇸🇹', '🇸🇻', '🇸🇽', '🇸🇾', '🇸🇿', '🇹🇦', '🇹🇨', '🇹🇩', '🇹🇯', '🇹🇰', '🇹🇱', '🇹🇲', '🇹🇳', '🇹🇴', '🇹🇷', '🇹🇹', '🇹🇻', '🇹🇼', '🇹🇿', '🇺🇦', '🇺🇬', '🇺🇳', '🇺🇸', '🇺🇾', '🇺🇿', '🇻🇦', '🇻🇨', '🇻🇪', '🇻🇬', '🇻🇮', '🇻🇳', '🇻🇺', '🇼🇫', '🇼🇸', '🇾🇪', '🇾🇹', '🇿🇦', '🇿🇲', '🇿🇼']
   };
 
@@ -733,9 +734,8 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
 
   const handleBlockTypeChange = (newType) => {
     setShowTypeSelector(false);
-    
+
     if (newType === 'emoji') {
-      // Show emoji picker for emoji block type
       const rect = textareaRef.current?.getBoundingClientRect();
       if (rect) {
         setEmojiPickerPosition({
@@ -744,11 +744,18 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         });
         setShowEmojiPicker(true);
       }
+    } else if (newType === 'database') {
+      // Если текущий блок пустой, удаляем его перед вставкой таблицы
+      if (!content.trim()) {
+        deleteBlock(block.id);
+      }
+      insertBlock(block.id, 'database');
+      setContent(''); // Очищаем содержимое блока, чтобы / исчезал
+      setEditingBlock(null); // Завершаем редактирование сразу
+      return;
     } else {
-      // Update block type for other types
       updateBlock(block.id, { type: newType, content: content.replace('/', '') });
-      setContent(''); // Clear the / command
-      // Focus the textarea after a short delay to ensure cursor appears
+      setContent('');
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
@@ -813,7 +820,7 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             onBlur={handleBlur}
-            className="w-full bg-transparent border-none outline-none resize-none overflow-hidden min-h-[1.5rem] cursor-text"
+            className="w-full bg-transparent border-none outline-none overflow-hidden min-h-[1.5rem] cursor-text"
             style={{ 
               fontFamily: 'inherit',
               fontSize: 'inherit',
@@ -952,6 +959,8 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
             {content || '😊'}
           </div>
         );
+      case 'database':
+        return <EditableTable />;
       default:
         return (
           <div className={`${baseClasses}`} onClick={handleClick} title="Click to edit block">
@@ -2229,3 +2238,313 @@ export const NotionClone = () => {
     </div>
   );
 };
+
+const COLUMN_TYPES = [
+  { type: 'text', label: 'Text' },
+  { type: 'number', label: 'Number' },
+  { type: 'checkbox', label: 'Checkbox' },
+  { type: 'date', label: 'Date' },
+  { type: 'select', label: 'Select' },
+  { type: 'multi-select', label: 'Multi-select' },
+  { type: 'url', label: 'URL' },
+  { type: 'email', label: 'Email' },
+];
+
+function EditableTable() {
+  const [title, setTitle] = useState('');
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [columns, setColumns] = useState([
+    { id: 'name', name: '', editing: false },
+    { id: 'text', name: '', editing: false }
+  ]);
+  const [rows, setRows] = useState([
+    { id: Date.now().toString(), values: Object.fromEntries([['name', ''], ['text', '']]), emoji: '' }
+  ]);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [hoveredRow, setHoveredRow] = useState(null);
+  const [hoveredHeader, setHoveredHeader] = useState(false);
+  const [hoveredColHeader, setHoveredColHeader] = useState(null);
+  const [emojiPickerRow, setEmojiPickerRow] = useState(null);
+  const emojiIconRefs = useRef({});
+  // В useState добавим состояние для ручного выбора всех строк через квадратик Name
+  const [allRowsManuallySelected, setAllRowsManuallySelected] = useState(false);
+
+  // Редактирование заголовка
+  function startEditTitle() { setEditingTitle(true); }
+  function finishEditTitle(value) {
+    setTitle(value);
+    setEditingTitle(false);
+  }
+
+  // Редактирование названия столбца
+  function startEditCol(colId) {
+    setColumns(cols => cols.map(c => c.id === colId ? { ...c, editing: true } : c));
+  }
+  function finishEditCol(colId, value) {
+    setColumns(cols => cols.map(c => c.id === colId ? { ...c, name: value || c.name, editing: false } : c));
+  }
+  function handleColNameChange(colId, value) {
+    setColumns(cols => cols.map(c => c.id === colId ? { ...c, name: value } : c));
+  }
+
+  // Добавить строку
+  function addRow() {
+    setRows(rows => [
+      ...rows,
+      { id: Date.now().toString(), values: Object.fromEntries(columns.map(c => [c.id, ''])), emoji: '' }
+    ]);
+  }
+
+  // Добавить столбец (всегда справа)
+  function addColumn() {
+    const newId = Date.now().toString();
+    setColumns(cols => [...cols, { id: newId, name: 'Column', editing: true }]);
+    setRows(rows => rows.map(r => ({ ...r, values: { ...r.values, [newId]: '' } })));
+  }
+
+  // Редактировать ячейку
+  function editCell(rowId, colId, value) {
+    setRows(rows => rows.map(r =>
+      r.id === rowId ? { ...r, values: { ...r.values, [colId]: value } } : r
+    ));
+  }
+
+  // Выделение строк
+  function toggleRowSelect(rowId) {
+    setSelectedRows(sel => sel.includes(rowId) ? sel.filter(id => id !== rowId) : [...sel, rowId]);
+  }
+  function toggleAllRows() {
+    if (selectedRows.length === rows.length) {
+      setSelectedRows([]);
+      setAllRowsManuallySelected(false);
+    } else {
+      setSelectedRows(rows.map(r => r.id));
+      setAllRowsManuallySelected(true);
+    }
+  }
+  function clearSelection() {
+    setSelectedRows([]);
+  }
+  function deleteSelectedRows() {
+    setRows(rows => rows.filter(r => !selectedRows.includes(r.id)));
+    setSelectedRows([]);
+  }
+
+  // Выбор эмодзи для строки
+  function handleEmojiSelect(rowId, emoji) {
+    setRows(rows => rows.map(r => r.id === rowId ? { ...r, emoji } : r));
+    setEmojiPickerRow(null);
+  }
+
+  // Получить позицию для EmojiPicker
+  function getEmojiPickerPosition(rowId) {
+    const ref = emojiIconRefs.current[rowId];
+    if (ref) {
+      const rect = ref.getBoundingClientRect();
+      return { x: rect.left, y: rect.bottom };
+    }
+    return { x: 0, y: 0 };
+  }
+
+  function deleteColumn(colId) {
+    setColumns(cols => cols.filter(c => c.id !== colId));
+    setRows(rows => rows.map(r => {
+      const newVals = { ...r.values };
+      delete newVals[colId];
+      return { ...r, values: newVals };
+    }));
+  }
+
+  // В useEffect сбрасываем allRowsManuallySelected если выделение снято
+  useEffect(() => {
+    if (selectedRows.length !== rows.length) {
+      setAllRowsManuallySelected(false);
+    }
+  }, [selectedRows, rows.length]);
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm w-full max-w-4xl mx-auto my-4">
+      {/* Toolbar для удаления выбранных */}
+      {selectedRows.length > 0 && (
+        <div className="flex items-center gap-2 p-2 bg-gray-50 border-b border-gray-200 rounded-t-xl">
+          <span className="text-blue-600 font-medium">{selectedRows.length} selected</span>
+          <button className="text-gray-500 hover:text-red-600 p-1" onClick={deleteSelectedRows} title="Delete selected">
+            <Trash2 className="w-5 h-5" />
+          </button>
+          <button className="text-gray-400 hover:text-gray-700 p-1" onClick={clearSelection} title="Clear selection">✕</button>
+        </div>
+      )}
+      <div className="flex items-center gap-3 mb-2 mt-4 ml-4">
+        {editingTitle ? (
+          <input
+            className="text-2xl font-bold text-gray-700 bg-transparent outline-none px-1 py-0.5 w-64 focus:bg-gray-100"
+            value={title}
+            readOnly={!editingTitle}
+            autoFocus={editingTitle}
+            onClick={() => { if (!editingTitle) setEditingTitle(true); }}
+            onChange={e => setTitle(e.target.value)}
+            onBlur={e => { if (editingTitle) finishEditTitle(e.target.value); }}
+            onKeyDown={e => {
+              if ((e.key === 'Enter' || e.key === 'Escape') && editingTitle) finishEditTitle(e.target.value);
+            }}
+            placeholder="New database"
+          />
+        ) : (
+          <span
+            className={`text-2xl font-bold select-none cursor-pointer hover:bg-gray-100 px-1 py-0.5 rounded ${title ? 'text-gray-700' : 'text-gray-300'}`}
+            onClick={startEditTitle}
+          >
+            {title || <span className="text-gray-300">New database</span>}
+          </span>
+        )}
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-separate border-spacing-0">
+          <thead>
+            <tr
+              onMouseEnter={() => setHoveredHeader(true)}
+              onMouseLeave={() => setHoveredHeader(false)}
+            >
+              {/* Квадратик для выбора всех строк — только слева от первого столбца (Name) */}
+              <th className="bg-white border-b border-gray-200 px-2 py-2 text-center align-middle w-8">
+                {(hoveredHeader || selectedRows.length > 0 || allRowsManuallySelected) && (
+                  <div
+                    className={`w-5 h-5 rounded border border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-100 ${((selectedRows.length === rows.length && rows.length > 0) || allRowsManuallySelected) ? 'bg-blue-100 border-blue-400' : ''}`}
+                    onClick={toggleAllRows}
+                    title="Select all rows"
+                  >
+                    {((selectedRows.length === rows.length && rows.length > 0) || allRowsManuallySelected) && <span className="w-3 h-3 bg-blue-500 rounded"></span>}
+                  </div>
+                )}
+              </th>
+              {columns.map((col, idx) => (
+                <th
+                  key={col.id}
+                  className={`bg-white border-b border-gray-200 px-4 py-2 text-left font-semibold text-gray-700 relative ${idx < columns.length - 1 ? 'border-r border-gray-200' : ''}`}
+                  onMouseEnter={() => setHoveredColHeader(col.id)}
+                  onMouseLeave={() => setHoveredColHeader(null)}
+                >
+                  {/* Квадратик справа только у остальных столбцов (кроме первого) */}
+                  {idx !== 0 && hoveredColHeader === col.id && (
+                    <div
+                      className={`absolute right-0 top-1/2 -translate-y-1/2 w-5 h-5 rounded border border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-100`}
+                      title="Delete column"
+                      onClick={() => deleteColumn(col.id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-gray-400" />
+                    </div>
+                  )}
+                  {col.editing ? (
+                    <input
+                      className="border-none outline-none bg-transparent font-semibold text-gray-700 px-1 py-0.5 w-32 min-w-[180px] focus:bg-gray-100"
+                      value={col.name}
+                      readOnly={!col.editing}
+                      autoFocus={col.editing}
+                      onClick={() => { if (!col.editing) startEditCol(col.id); }}
+                      onChange={e => handleColNameChange(col.id, e.target.value)}
+                      onBlur={e => { if (col.editing) finishEditCol(col.id, e.target.value); }}
+                      onKeyDown={e => {
+                        if ((e.key === 'Enter' || e.key === 'Escape') && col.editing) finishEditCol(col.id, e.target.value);
+                      }}
+                      placeholder="Column"
+                    />
+                  ) : (
+                    <span
+                      onClick={() => startEditCol(col.id)}
+                      className={`cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 ${col.name ? 'text-gray-700' : 'text-gray-300'}`}
+                    >
+                      {col.name || <span className="text-gray-300">Column</span>}
+                    </span>
+                  )}
+                </th>
+              ))}
+              {/* Плюсик справа от последнего столбца */}
+              <th className="bg-white border-b border-gray-200 px-2 py-2 text-center align-middle">
+                <button
+                  className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-blue-500 bg-transparent border-none shadow-none"
+                  style={{ zIndex: 2 }}
+                  onClick={addColumn}
+                  title="Add column"
+                >
+                  +
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(row => (
+              <tr
+                key={row.id}
+                className={`hover:bg-gray-50 transition-colors ${selectedRows.includes(row.id) ? 'bg-blue-50' : ''}`}
+                onMouseEnter={() => setHoveredRow(row.id)}
+                onMouseLeave={() => setHoveredRow(null)}
+              >
+                {/* Квадратик вне таблицы слева */}
+                <td className="border-b border-gray-200 px-2 py-2 text-center align-middle w-8">
+                  {(hoveredRow === row.id || selectedRows.includes(row.id)) && (
+                    <div
+                      className={`w-5 h-5 rounded border border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-100 ${selectedRows.includes(row.id) ? 'bg-blue-100 border-blue-400' : ''}`}
+                      onClick={() => toggleRowSelect(row.id)}
+                      title="Select row"
+                    >
+                      {selectedRows.includes(row.id) && <span className="w-3 h-3 bg-blue-500 rounded"></span>}
+                    </div>
+                  )}
+                </td>
+                {columns.map((col, idx) => (
+                  <td key={col.id} className={`border-b border-gray-200 px-4 py-2 ${idx < columns.length - 1 ? 'border-r border-gray-200' : ''}`}>
+                    {/* Для Name: иконка документа слева от текста, очень близко */}
+                    {col.id === 'name' && (
+                      <span className="inline-flex items-center gap-1">
+                        <button
+                          ref={el => emojiIconRefs.current[row.id] = el}
+                          className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-blue-500 bg-transparent border-none shadow-none mr-1"
+                          onClick={() => setEmojiPickerRow(row.id)}
+                          title="Set emoji"
+                          type="button"
+                        >
+                          {row.emoji ? <span className="text-xl">{row.emoji}</span> : <FileText className="w-5 h-5" />}
+                        </button>
+                        <input
+                          style={{ width: `${Math.round(260 * 2 / columns.length)}px` }}
+                          className="bg-transparent outline-none focus:bg-gray-100 px-2 rounded"
+                          value={row.values[col.id] || ''}
+                          onChange={e => editCell(row.id, col.id, e.target.value)}
+                        />
+                        {emojiPickerRow === row.id && (
+                          <div style={{ position: 'absolute', zIndex: 50, left: 0 }}>
+                            <EmojiPicker
+                              isOpen={true}
+                              onClose={() => setEmojiPickerRow(null)}
+                              onSelect={emoji => handleEmojiSelect(row.id, emoji)}
+                              position={getEmojiPickerPosition(row.id)}
+                            />
+                          </div>
+                        )}
+                      </span>
+                    )}
+                    {col.id !== 'name' && (
+                      <input
+                        className="w-full bg-transparent outline-none focus:bg-gray-100 min-w-[180px] px-2 rounded"
+                        value={row.values[col.id] || ''}
+                        onChange={e => editCell(row.id, col.id, e.target.value)}
+                      />
+                    )}
+                  </td>
+                ))}
+                {/* Добавить пустой td с border-r для визуального завершения линии справа */}
+                <td className="border-b border-r border-gray-200"></td>
+              </tr>
+            ))}
+            {/* Строка + New page */}
+            <tr>
+              <td colSpan={columns.length + 2} className="text-left text-gray-400 px-4 py-3 cursor-pointer hover:bg-gray-50" onClick={addRow}>
+                + New page
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
