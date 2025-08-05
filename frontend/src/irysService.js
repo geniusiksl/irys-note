@@ -28,7 +28,7 @@ class IrysService {
 
   async getStorageStats() {
     try {
-      const response = await fetch('http://localhost:4000/storage-stats');
+      const response = await fetch('https://irys-note.onrender.com/storage-stats');
       if (!response.ok) throw new Error('Failed to get storage stats');
       const stats = await response.json();
       return {
@@ -60,7 +60,7 @@ class IrysService {
   }
 
   async sendIdToServer(endpoint, id) {
-    const res = await fetch(`http://localhost:4000/${endpoint}`, {
+    const res = await fetch(`https://irys-note.onrender.com/${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
@@ -77,7 +77,7 @@ class IrysService {
 
   async loadPages() {
     try {
-      const response = await fetch('http://localhost:4000/pages');
+      const response = await fetch('https://irys-note.onrender.com/pages');
       if (!response.ok) throw new Error('Failed to load pages');
       return await response.json();
     } catch (e) {
@@ -98,7 +98,7 @@ class IrysService {
   // Добавить загрузку workspace (заглушка, если нет бекенда)
   async loadWorkspace() {
     try {
-      const response = await fetch('http://localhost:4000/workspace');
+      const response = await fetch('https://irys-note.onrender.com/workspace');
       if (!response.ok) throw new Error('Failed to load workspace');
       return await response.json();
     } catch (e) {
