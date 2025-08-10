@@ -544,7 +544,7 @@ class IrysService {
     return allTransactions;
   }
 
-  async loadDataByWallet(dataType = null, includeRecent = true) {
+  async loadDataByWallet(dataType = null, includeRecent = true, forceRefresh = false) {
     try {
       let walletAddress = window.ethereum?.selectedAddress;
       
@@ -557,12 +557,16 @@ class IrysService {
         }
       }
       
-      // Проверяем кэш для этого запроса
+      // Проверяем кэш для этого запроса (только если не принудительное обновление)
       const cacheKey = `wallet_${walletAddress}_${dataType || 'all'}`;
-      const cached = this.getCachedData(cacheKey);
-      if (cached) {
-        console.log('Returning cached data for', cacheKey);
-        return cached;
+      if (!forceRefresh) {
+        const cached = this.getCachedData(cacheKey);
+        if (cached) {
+          console.log('Returning cached data for', cacheKey);
+          return cached;
+        }
+      } else {
+        console.log('Force refresh - skipping cache for', cacheKey);
       }
       
       const results = [];
@@ -712,9 +716,9 @@ class IrysService {
     }
   }
   
-  async loadPages() {
+  async loadPages(forceRefresh = false) {
     try {
-      const results = await this.loadDataByWallet('pages');
+      const results = await this.loadDataByWallet('pages', true, forceRefresh);
       if (results.length === 0) return {};
       
       // Результаты уже отсортированы по времени в loadDataByWallet
@@ -746,9 +750,9 @@ class IrysService {
     }
   }
 
-  async loadWorkspace() {
+  async loadWorkspace(forceRefresh = false) {
     try {
-      const results = await this.loadDataByWallet('workspace');
+      const results = await this.loadDataByWallet('workspace', true, forceRefresh);
       if (results.length === 0) return null;
       
       // Результаты уже отсортированы по времени в loadDataByWallet
@@ -787,9 +791,9 @@ class IrysService {
   }
 
   // Загрузка Database таблиц
-  async loadDatabase() {
+  async loadDatabase(forceRefresh = false) {
     try {
-      const results = await this.loadDataByWallet('database');
+      const results = await this.loadDataByWallet('database', true, forceRefresh);
       if (results.length === 0) return null;
       
       // Результаты уже отсортированы по времени в loadDataByWallet
@@ -914,8 +918,39 @@ class IrysService {
     const cacheKey = `wallet_${walletAddress}_${dataType || 'all'}`;
     this.cache.delete(cacheKey);
     
-    // Загружаем заново
-    return await this.loadDataByWallet(dataType, false);
+    // Загружаем заново с принудительным обновлением
+    return await this.loadDataByWallet(dataType, false, true);
+  }
+
+  // Синхронизация всех данных приложения (для решения проблемы с разными доменами)
+  async syncAllData() {
+    try {
+      console.log('🔄 Starting full data sync from blockchain...');
+      
+      const [workspace, pages, database] = await Promise.all([
+        this.loadWorkspace(true), // forceRefresh = true
+        this.loadPages(true),     // forceRefresh = true
+        this.loadDatabase(true)   // forceRefresh = true (нужно добавить параметр)
+      ]);
+      
+      console.log('✅ Full data sync completed');
+      return {
+        workspace,
+        pages,
+        database,
+        synced: true,
+        timestamp: Date.now()
+      };
+    } catch (e) {
+      console.error('❌ Full data sync failed:', e);
+      return {
+        workspace: null,
+        pages: null,
+        database: null,
+        synced: false,
+        error: e.message
+      };
+    }
   }
 
   // Получение статуса блокчейна
