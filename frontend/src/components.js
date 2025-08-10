@@ -2163,12 +2163,12 @@ export const NotionClone = () => {
     }
   };
 
-  // Показывать модалку подключения кошелька при старте, если не подключен
-  useEffect(() => {
-    if (!walletStatus.connected) {
-      setShowWalletModal(true);
-    }
-  }, [walletStatus.connected]);
+  // НЕ показываем модалку автоматически - пользователь может подключить кошелек вручную
+  // useEffect(() => {
+  //   if (!walletStatus.connected) {
+  //     setShowWalletModal(true);
+  //   }
+  // }, [walletStatus.connected]);
 
   if (loading) {
     return (
@@ -2266,14 +2266,112 @@ function EditableTable() {
   const [hoveredColHeader, setHoveredColHeader] = useState(null);
   const [emojiPickerRow, setEmojiPickerRow] = useState(null);
   const emojiIconRefs = useRef({});
-  // В useState добавим состояние для ручного выбора всех строк через квадратик Name
   const [allRowsManuallySelected, setAllRowsManuallySelected] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState(null);
+  const [lastSavedToIrys, setLastSavedToIrys] = useState(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Загрузка данных таблицы при инициализации
+  useEffect(() => {
+    const loadTableData = async () => {
+      try {
+        // Сначала пробуем загрузить из localStorage (быстро)
+        const localData = localStorage.getItem('irysNote_database');
+        if (localData) {
+          const parsed = JSON.parse(localData);
+          setTitle(parsed.title || '');
+          setColumns(parsed.columns || [{ id: 'name', name: '', editing: false }, { id: 'text', name: '', editing: false }]);
+          setRows(parsed.rows || [{ id: Date.now().toString(), values: Object.fromEntries([['name', ''], ['text', '']]), emoji: '' }]);
+          setLastSaved(parsed.timestamp);
+          console.log('Loaded database table from localStorage');
+        }
+        
+        // Затем пробуем загрузить из Irys (медленно, в фоне)
+        const savedData = await irysService.loadDatabase();
+        if (savedData && savedData.timestamp > (JSON.parse(localData || '{}').timestamp || 0)) {
+          setTitle(savedData.title || '');
+          setColumns(savedData.columns || [{ id: 'name', name: '', editing: false }, { id: 'text', name: '', editing: false }]);
+          setRows(savedData.rows || [{ id: Date.now().toString(), values: Object.fromEntries([['name', ''], ['text', '']]), emoji: '' }]);
+          setLastSavedToIrys(savedData.timestamp);
+          console.log('Updated database table from Irys');
+        }
+      } catch (e) {
+        console.warn('Failed to load database table:', e);
+      }
+    };
+    loadTableData();
+  }, []);
+
+  // Локальное сохранение (без подписи)
+  const saveToLocalStorage = useCallback(() => {
+    try {
+      const tableData = {
+        title,
+        columns: columns.map(col => ({ ...col, editing: false })),
+        rows,
+        timestamp: Date.now()
+      };
+      
+      localStorage.setItem('irysNote_database', JSON.stringify(tableData));
+      setLastSaved(Date.now());
+      setHasUnsavedChanges(false);
+      console.log('Database table saved to localStorage');
+    } catch (e) {
+      console.error('Error saving to localStorage:', e);
+    }
+  }, [title, columns, rows]);
+
+  // Сохранение в Irys (с подписью, только по кнопке)
+  const saveToIrys = useCallback(async () => {
+    if (saving) return;
+    
+    try {
+      setSaving(true);
+      const tableData = {
+        title,
+        columns: columns.map(col => ({ ...col, editing: false })),
+        rows,
+        timestamp: Date.now()
+      };
+      
+      const result = await irysService.saveDatabase(tableData);
+      if (result.success) {
+        setLastSavedToIrys(Date.now());
+        setHasUnsavedChanges(false);
+        // Также сохраняем локально
+        localStorage.setItem('irysNote_database', JSON.stringify(tableData));
+        setLastSaved(Date.now());
+        console.log('Database table saved to Irys:', result.id);
+      } else {
+        console.error('Failed to save database table:', result.error);
+      }
+    } catch (e) {
+      console.error('Error saving database table:', e);
+    } finally {
+      setSaving(false);
+    }
+  }, [title, columns, rows, saving]);
+
+  // Дебаунсированное локальное автосохранение (БЕЗ подписи)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (title || columns.some(col => col.name) || rows.some(row => Object.values(row.values).some(val => val))) {
+        saveToLocalStorage();
+        setHasUnsavedChanges(true); // Отмечаем, что есть несохраненные изменения в Irys
+      }
+    }, 1000); // Сохраняем локально через 1 секунду
+
+    return () => clearTimeout(timeoutId);
+  }, [saveToLocalStorage]);
 
   // Редактирование заголовка
   function startEditTitle() { setEditingTitle(true); }
   function finishEditTitle(value) {
     setTitle(value);
     setEditingTitle(false);
+    // Локальное сохранение без подписи
+    setTimeout(saveToLocalStorage, 100);
   }
 
   // Редактирование названия столбца
@@ -2282,6 +2380,8 @@ function EditableTable() {
   }
   function finishEditCol(colId, value) {
     setColumns(cols => cols.map(c => c.id === colId ? { ...c, name: value || c.name, editing: false } : c));
+    // Локальное сохранение без подписи
+    setTimeout(saveToLocalStorage, 100);
   }
   function handleColNameChange(colId, value) {
     setColumns(cols => cols.map(c => c.id === colId ? { ...c, name: value } : c));
@@ -2293,6 +2393,8 @@ function EditableTable() {
       ...rows,
       { id: Date.now().toString(), values: Object.fromEntries(columns.map(c => [c.id, ''])), emoji: '' }
     ]);
+    // Локальное сохранение без подписи
+    setTimeout(saveToLocalStorage, 100);
   }
 
   // Добавить столбец (всегда справа)
@@ -2375,28 +2477,20 @@ function EditableTable() {
         </div>
       )}
       <div className="flex items-center gap-3 mb-2 mt-4 ml-4">
-        {editingTitle ? (
-          <input
-            className="text-2xl font-bold text-gray-700 bg-transparent outline-none px-1 py-0.5 w-64 focus:bg-gray-100"
-            value={title}
-            readOnly={!editingTitle}
-            autoFocus={editingTitle}
-            onClick={() => { if (!editingTitle) setEditingTitle(true); }}
-            onChange={e => setTitle(e.target.value)}
-            onBlur={e => { if (editingTitle) finishEditTitle(e.target.value); }}
-            onKeyDown={e => {
-              if ((e.key === 'Enter' || e.key === 'Escape') && editingTitle) finishEditTitle(e.target.value);
-            }}
-            placeholder="New database"
-          />
-        ) : (
-          <span
-            className={`text-2xl font-bold select-none cursor-pointer hover:bg-gray-100 px-1 py-0.5 rounded ${title ? 'text-gray-700' : 'text-gray-300'}`}
-            onClick={startEditTitle}
-          >
-            {title || <span className="text-gray-300">New database</span>}
-          </span>
-        )}
+        <input
+          className="text-2xl font-bold text-gray-700 bg-transparent outline-none px-1 py-0.5 w-64 focus:bg-gray-100"
+          value={title}
+          readOnly={!editingTitle}
+          autoFocus={editingTitle}
+          onClick={() => { if (!editingTitle) setEditingTitle(true); }}
+          onChange={e => setTitle(e.target.value)}
+          onBlur={e => { if (editingTitle) finishEditTitle(e.target.value); }}
+          onKeyDown={e => {
+            if ((e.key === 'Enter' || e.key === 'Escape') && editingTitle) finishEditTitle(e.target.value);
+          }}
+          placeholder="New database"
+        />
+
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full border-separate border-spacing-0">
