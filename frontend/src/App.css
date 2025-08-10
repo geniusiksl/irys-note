@@ -14,6 +14,344 @@ body {
   background-color: #ffffff;
   color: #37352f;
   line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark mode styles */
+.dark body {
+  background-color: #1a1a1a;
+  color: #e6e6e6;
+}
+
+.dark {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #3d3d3d;
+  --text-primary: #e6e6e6;
+  --text-secondary: #b3b3b3;
+  --text-muted: #808080;
+  --border-color: #404040;
+  --hover-bg: #404040;
+}
+
+/* Dark mode for main components */
+.dark .page-editor {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.dark .page-title {
+  color: var(--text-primary);
+}
+
+.dark .page-title::placeholder {
+  color: var(--text-muted);
+}
+
+.dark .sidebar {
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+}
+
+.dark .sidebar-header {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dark .sidebar-item {
+  color: var(--text-primary);
+}
+
+.dark .sidebar-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.dark .sidebar-item.active {
+  background-color: rgba(46, 170, 220, 0.25);
+}
+
+.dark .block-controls button:hover {
+  background-color: var(--hover-bg);
+}
+
+.dark .block-selector {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3);
+}
+
+.dark .block-selector-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.dark .block-selector-title {
+  color: var(--text-primary);
+}
+
+.dark .block-selector-description {
+  color: var(--text-secondary);
+}
+
+.dark .callout {
+  background-color: rgba(46, 170, 220, 0.15);
+  border: 1px solid rgba(46, 170, 220, 0.3);
+}
+
+.dark .code-block {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.dark .quote {
+  border-left: 4px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.dark .list-marker {
+  color: var(--text-muted);
+}
+
+.dark .todo-content.completed {
+  color: var(--text-muted);
+}
+
+.dark .divider {
+  background-color: var(--border-color);
+}
+
+.dark .hover-bg:hover {
+  background-color: var(--hover-bg);
+}
+
+.dark input, .dark textarea {
+  background-color: transparent;
+  color: var(--text-primary);
+}
+
+.dark input::placeholder, .dark textarea::placeholder {
+  color: var(--text-muted);
+}
+
+/* Дополнительные стили для темной темы */
+.dark,
+.dark .App,
+.dark .page-editor,
+.dark .page-content,
+.dark .page-header {
+  color: var(--text-primary);
+}
+
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: var(--text-primary);
+}
+
+.dark p, .dark span, .dark div {
+  color: var(--text-primary);
+}
+
+.dark .block-container,
+.dark .block-container *,
+.dark [contenteditable],
+.dark [contenteditable] * {
+  color: var(--text-primary) !important;
+}
+
+/* Стили для всех текстовых элементов в темной теме */
+.dark button,
+.dark label,
+.dark li,
+.dark td,
+.dark th,
+.dark .sidebar-item,
+.dark .sidebar-section,
+.dark a,
+.dark strong,
+.dark em,
+.dark small,
+.dark code,
+.dark pre,
+.dark blockquote,
+.dark .text,
+.dark .content,
+.dark .title,
+.dark .description,
+.dark .placeholder {
+  color: var(--text-primary);
+}
+
+/* Принудительные стили для всех элементов в темной теме */
+.dark * {
+  color: var(--text-primary) !important;
+}
+
+/* Исправление белых элементов в темной теме */
+.dark .bg-white {
+  background-color: var(--bg-secondary) !important;
+}
+
+.dark .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+.dark .border-gray-200 {
+  border-color: var(--border-color) !important;
+}
+
+/* Исключения для элементов, которые должны сохранить свой цвет */
+.dark .lucide,
+.dark svg,
+.dark .icon {
+  color: inherit !important;
+}
+
+/* Специальные стили для placeholder текста */
+.dark ::placeholder {
+  color: var(--text-muted) !important;
+}
+
+.dark ::-webkit-input-placeholder {
+  color: var(--text-muted) !important;
+}
+
+.dark ::-moz-placeholder {
+  color: var(--text-muted) !important;
+}
+
+.dark :-ms-input-placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Убираем синюю полоску при перетаскивании и фокусе */
+*:focus,
+*:focus-visible,
+*:active,
+.block-container:focus,
+.block-container:focus-within,
+[contenteditable]:focus,
+[draggable]:focus,
+input:focus,
+textarea:focus,
+button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.dark *:focus,
+.dark *:focus-visible,
+.dark *:active,
+.dark .block-container:focus,
+.dark .block-container:focus-within,
+.dark [contenteditable]:focus,
+.dark [draggable]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Убираем синее выделение при перетаскивании */
+[draggable="true"] {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+[draggable="true"]:focus,
+[draggable="true"]:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Стили для скроллбара в темной теме */
+.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #374151;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #6b7280;
+  border-radius: 4px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.dark ::-webkit-scrollbar-corner {
+  background: #374151;
+}
+
+/* Дополнительные стили для скроллбара на уровне документа */
+:root.dark ::-webkit-scrollbar {
+  width: 8px;
+}
+
+:root.dark ::-webkit-scrollbar-track {
+  background: #1f2937 !important;
+}
+
+:root.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563 !important;
+  border-radius: 4px;
+}
+
+:root.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280 !important;
+}
+
+:root.dark ::-webkit-scrollbar-corner {
+  background: #1f2937 !important;
+}
+
+/* Альтернативные селекторы для скроллбара в темной теме */
+html:has(.dark) ::-webkit-scrollbar-track {
+  background: #1f2937 !important;
+}
+
+html:has(.dark) ::-webkit-scrollbar-thumb {
+  background: #4b5563 !important;
+  border-radius: 4px;
+}
+
+html:has(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280 !important;
+}
+
+/* Максимально специфичные селекторы для скроллбара */
+body.dark ::-webkit-scrollbar-track,
+.dark body ::-webkit-scrollbar-track,
+[class*="dark"] ::-webkit-scrollbar-track {
+  background: #1f2937 !important;
+}
+
+body.dark ::-webkit-scrollbar-thumb,
+.dark body ::-webkit-scrollbar-thumb,
+[class*="dark"] ::-webkit-scrollbar-thumb {
+  background: #4b5563 !important;
+  border-radius: 4px;
+}
+
+body.dark ::-webkit-scrollbar-thumb:hover,
+.dark body ::-webkit-scrollbar-thumb:hover,
+[class*="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280 !important;
+}
+
+/* Dark mode variables */
+:root.dark {
+  --bg-primary: #1f2937;
+  --bg-secondary: #374151;
+  --bg-tertiary: #4b5563;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --border-color: #4b5563;
+  --hover-bg: #374151;
 }
 
 .App {
@@ -38,6 +376,29 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a1a1a1;
+}
+
+/* Дополнительные стили для убирания фокуса */
+*:focus, *:active, *:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Убираем выделение при drag & drop */
+*[draggable="true"] {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  outline: none !important;
+}
+
+*[draggable="true"]:focus,
+*[draggable="true"]:active,
+*[draggable="true"]:hover {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 /* Notion-like typography */
@@ -101,6 +462,18 @@ p {
   background-color: rgba(55, 53, 47, 0.08);
 }
 
+.dark .block-controls button:hover {
+  background-color: var(--hover-bg);
+}
+
+.dark .block-container {
+  background-color: transparent;
+}
+
+.dark .block-container:hover {
+  background-color: var(--hover-bg);
+}
+
 /* Sidebar styles */
 .sidebar {
   background-color: #f7f6f3;
@@ -136,6 +509,85 @@ p {
   background-color: rgba(46, 170, 220, 0.15);
 }
 
+/* Дополнительные стили для темной темы в сайдбаре */
+.dark .sidebar {
+  background-color: #2f2f2f;
+  border-right: 1px solid #404040;
+}
+
+.dark .sidebar-header {
+  border-bottom: 1px solid #404040;
+}
+
+.dark .sidebar-item {
+  color: #e5e5e5;
+}
+
+.dark .sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .sidebar-item.active {
+  background-color: rgba(46, 170, 220, 0.3);
+}
+
+.dark .sidebar-section * {
+  color: var(--text-primary) !important;
+}
+
+/* Стили для блоков в темной теме */
+.dark .block-container {
+  color: #e5e5e5;
+}
+
+.dark .block-container:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Стили для панели выбора типа блока */
+.dark .block-type-selector {
+  background-color: #2f2f2f;
+  border: 1px solid #404040;
+  color: #e5e5e5;
+}
+
+.dark .block-type-option {
+  color: #e5e5e5;
+}
+
+.dark .block-type-option:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Стили для placeholder текста в темной теме */
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #888 !important;
+}
+
+/* Стили для текста в блоках */
+.dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+  color: #e5e5e5;
+}
+
+.dark p {
+  color: #e5e5e5;
+}
+
+.dark .sidebar-header * {
+  color: var(--text-primary) !important;
+}
+
+.dark input[type="search"] {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.dark input[type="search"]::placeholder {
+  color: var(--text-muted) !important;
+}
+
 /* Page editor styles */
 .page-editor {
   flex: 1;
@@ -168,6 +620,22 @@ p {
 
 .page-title::placeholder {
   color: rgba(55, 53, 47, 0.4);
+}
+
+/* Дополнительные стили для блоков в темной теме */
+.dark [contenteditable] {
+  background-color: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+.dark [contenteditable]:focus {
+  background-color: var(--bg-secondary) !important;
+  outline: none !important;
+}
+
+.dark .block-container:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 4px;
 }
 
 /* Block type selector */
@@ -401,4 +869,8 @@ button:focus {
 /* Selection styles */
 ::selection {
   background-color: rgba(46, 170, 220, 0.28);
+}
+
+.dark ::selection {
+  background-color: rgba(46, 170, 220, 0.4);
 }

@@ -492,7 +492,7 @@ const EmojiPicker = ({ isOpen, onClose, onSelect, position }) => {
 };
 
 // Wallet Connection Modal Component
-const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
+const WalletConnectModal = ({ isOpen, onClose, onConnect, isDarkMode = false }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
 
@@ -544,12 +544,18 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50" onClick={onClose}>
-      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 relative" onClick={(e) => e.stopPropagation()}>
+      <div className={`rounded-lg p-6 w-full max-w-md mx-4 relative transition-colors ${
+        isDarkMode ? 'bg-gray-800' : 'bg-white'
+      }`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-gray-800">Connect Wallet</h2>
+          <h2 className={`text-xl font-bold transition-colors ${
+            isDarkMode ? 'text-white' : 'text-gray-800'
+          }`}>Connect Wallet</h2>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded"
+            className={`p-1 rounded transition-colors ${
+              isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -561,17 +567,29 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
               <Wallet className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h3 className="font-medium text-gray-800">Irys Decentralized Storage</h3>
-              <p className="text-sm text-gray-600">Connect your wallet to store data permanently</p>
+              <h3 className={`font-medium transition-colors ${
+                isDarkMode ? 'text-white' : 'text-gray-800'
+              }`}>Irys Decentralized Storage</h3>
+              <p className={`text-sm transition-colors ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>Connect your wallet to store data permanently</p>
             </div>
           </div>
           
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className={`border rounded-lg p-4 mb-4 transition-colors ${
+            isDarkMode 
+              ? 'bg-blue-900/20 border-blue-700' 
+              : 'bg-blue-50 border-blue-200'
+          }`}>
             <div className="flex items-start gap-3">
               <Shield className="w-5 h-5 text-blue-600 mt-0.5" />
               <div>
-                <h4 className="font-medium text-blue-800 mb-1">Why connect your wallet?</h4>
-                <ul className="text-sm text-blue-700 space-y-1">
+                <h4 className={`font-medium mb-1 transition-colors ${
+                  isDarkMode ? 'text-blue-300' : 'text-blue-800'
+                }`}>Why connect your wallet?</h4>
+                <ul className={`text-sm space-y-1 transition-colors ${
+                  isDarkMode ? 'text-blue-200' : 'text-blue-700'
+                }`}>
                   <li>• Permanent, immutable storage on Irys network</li>
                   <li>• Your data is accessible from anywhere</li>
                   <li>• No central authority can delete your content</li>
@@ -582,8 +600,14 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
           </div>
           
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-red-700">{error}</p>
+            <div className={`border rounded-lg p-3 mb-4 transition-colors ${
+              isDarkMode 
+                ? 'bg-red-900/20 border-red-700' 
+                : 'bg-red-50 border-red-200'
+            }`}>
+              <p className={`text-sm transition-colors ${
+                isDarkMode ? 'text-red-300' : 'text-red-700'
+              }`}>{error}</p>
             </div>
           )}
         </div>
@@ -609,7 +633,11 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
           
           <button
             onClick={onClose}
-            className="w-full text-gray-600 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors"
+            className={`w-full py-2 px-4 rounded-lg transition-colors ${
+              isDarkMode 
+                ? 'text-gray-300 hover:bg-gray-700' 
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
           >
             Continue without wallet (localStorage only)
           </button>
@@ -624,7 +652,7 @@ const WalletConnectModal = ({ isOpen, onClose, onConnect }) => {
 };
 
 // Individual Block Component
-const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEditingBlock, onDragStart, onDragOver, onDrop, index }) => {
+const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEditingBlock, isDarkMode, onDragStart, onDragOver, onDrop, index }) => {
   const [content, setContent] = useState(block.content);
   const [showBlockMenu, setShowBlockMenu] = useState(false);
   const [showTypeSelector, setShowTypeSelector] = useState(false);
@@ -847,7 +875,15 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
       );
     }
 
-    const baseClasses = "w-full bg-transparent border-none outline-none cursor-text hover:bg-blue-50 p-1 rounded min-h-[1.5rem] transition-colors";
+    const baseClasses = isEditing 
+    ? `min-h-[1.5rem] p-2 border rounded focus:outline-none focus:ring-2 resize-none transition-colors ${
+        isDarkMode 
+          ? 'border-gray-600 bg-gray-800 text-white focus:ring-blue-400 focus:border-blue-400' 
+          : 'border-blue-300 bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500'
+      }`
+    : `min-h-[1.5rem] cursor-text transition-colors ${
+        isDarkMode ? 'text-white' : 'text-gray-900'
+      }`;
     
     switch (block.type) {
       case 'heading1':
@@ -905,15 +941,23 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         );
       case 'quote':
         return (
-          <blockquote className={`border-l-4 border-gray-300 pl-4 italic ${baseClasses}`} onClick={handleClick}>
+          <blockquote className={`border-l-4 pl-4 italic transition-colors ${
+            isDarkMode ? 'border-gray-600 text-gray-300' : 'border-gray-300 text-gray-700'
+          } ${baseClasses}`} onClick={handleClick}>
             {content || 'Quote'}
           </blockquote>
         );
       case 'divider':
-        return <hr className="my-4 border-gray-300" />;
+        return <hr className={`my-4 transition-colors ${
+          isDarkMode ? 'border-gray-600' : 'border-gray-300'
+        }`} />;
       case 'callout':
         return (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3 my-2">
+          <div className={`border rounded-lg p-4 flex items-start gap-3 my-2 transition-colors ${
+            isDarkMode 
+              ? 'bg-blue-900/20 border-blue-700' 
+              : 'bg-blue-50 border-blue-200'
+          }`}>
             <span className="text-xl select-none">{block.properties.emoji || '💡'}</span>
             <div className={`flex-1 ${baseClasses}`} onClick={handleClick}>
               {content || 'Callout text'}
@@ -922,7 +966,11 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
         );
       case 'code':
         return (
-          <pre className={`bg-gray-100 border border-gray-200 rounded-lg p-4 font-mono text-sm overflow-x-auto ${baseClasses}`} onClick={handleClick}>
+          <pre className={`border rounded-lg p-4 font-mono text-sm overflow-x-auto transition-colors ${
+            isDarkMode 
+              ? 'bg-gray-800 border-gray-600 text-gray-200' 
+              : 'bg-gray-100 border-gray-200 text-gray-800'
+          } ${baseClasses}`} onClick={handleClick}>
             {content || 'Code block'}
           </pre>
         );
@@ -941,16 +989,22 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
           />
         ) : (
           <div 
-            className={`border-2 border-dashed border-gray-300 rounded-lg p-8 text-center ${baseClasses}`}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              isDarkMode 
+                ? 'border-gray-600 bg-gray-800/50' 
+                : 'border-gray-300 bg-gray-50'
+            } ${baseClasses}`}
             onClick={handleClick}
           >
-                          <div className="text-gray-500">
-                <div className="w-12 h-12 mx-auto mb-2 text-4xl flex items-center justify-center">
-                  🖼️
-                </div>
-                <p>Click to add an image</p>
-                <p className="text-sm">Type /image or paste a URL</p>
+            <div className={`transition-colors ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
+              <div className="w-12 h-12 mx-auto mb-2 text-4xl flex items-center justify-center">
+                🖼️
               </div>
+              <p>Click to add an image</p>
+              <p className="text-sm">Type /image or paste a URL</p>
+            </div>
           </div>
         );
       case 'emoji':
@@ -960,11 +1014,21 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
           </div>
         );
       case 'database':
-        return <EditableTable />;
+        return <EditableTable tableId={block.id} isDarkMode={isDarkMode} />;
+      case 'paragraph':
+        return (
+          <div className={`${baseClasses}`} onClick={handleClick} title="Click to edit block">
+            {content || <span className={`transition-colors ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-400'
+            }`}>Type '/' for commands or click to edit</span>}
+          </div>
+        );
       default:
         return (
           <div className={`${baseClasses}`} onClick={handleClick} title="Click to edit block">
-            {content || <span className="text-gray-400">Type '/' for commands or click to edit</span>}
+            {content || <span className={`transition-colors ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-400'
+            }`}>Type '/' for commands or click to edit</span>}
           </div>
         );
     }
@@ -973,7 +1037,11 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
   return (
     <div 
       ref={blockRef}
-      className="group relative flex items-start gap-2 py-1 hover:bg-gray-50 rounded"
+      className={`group relative flex items-start gap-2 py-1 rounded transition-colors ${
+        isDarkMode 
+          ? 'hover:bg-gray-800' 
+          : 'hover:bg-gray-50'
+      }`}
       onMouseEnter={() => setShowBlockMenu(true)}
       onMouseLeave={() => setShowBlockMenu(false)}
       draggable
@@ -984,18 +1052,26 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
     >
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button 
-          className="p-1 hover:bg-gray-200 rounded cursor-grab active:cursor-grabbing"
+          className={`p-1 rounded cursor-grab active:cursor-grabbing transition-colors ${
+            isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+          }`}
           title="Drag to reorder"
           // drag handled by parent div
         >
-          <GripVertical className="w-4 h-4 text-gray-400" />
+          <GripVertical className={`w-4 h-4 transition-colors ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`} />
         </button>
         <button 
-          className="p-1 hover:bg-gray-200 rounded"
+          className={`p-1 rounded transition-colors ${
+            isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+          }`}
           onClick={() => insertBlock(block.id, 'paragraph')}
           title="Add block below"
         >
-          <Plus className="w-4 h-4 text-gray-400" />
+          <Plus className={`w-4 h-4 transition-colors ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`} />
         </button>
       </div>
       
@@ -1006,11 +1082,15 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
       {showBlockMenu && (
         <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
           <button 
-            className="p-1 hover:bg-gray-200 rounded"
+            className={`p-1 rounded transition-colors ${
+              isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+            }`}
             onClick={() => deleteBlock(block.id)}
             title="Delete block"
           >
-            <Trash2 className="w-4 h-4 text-gray-400" />
+            <Trash2 className={`w-4 h-4 transition-colors ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-400'
+            }`} />
           </button>
         </div>
       )}
@@ -1019,7 +1099,7 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
 };
 
 // Block Type Selector Component
-const BlockTypeSelector = ({ onSelect, onClose, position }) => {
+const BlockTypeSelector = ({ onSelect, onClose, position, isDarkMode = false }) => {
   const [filter, setFilter] = useState('');
   const selectorRef = useRef(null);
   
@@ -1054,8 +1134,14 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
   return (
     <div 
       ref={selectorRef}
-      className="fixed z-[9998] bg-white border border-gray-200 rounded-lg shadow-lg p-2 w-80 max-h-96 overflow-y-auto"
+      className={`fixed z-[9998] border rounded-lg shadow-lg p-2 w-80 max-h-96 overflow-y-auto transition-colors ${
+        isDarkMode 
+          ? 'bg-gray-800 border-gray-600' 
+          : 'bg-white border-gray-200'
+      }`}
       style={{ 
+        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
+        borderColor: isDarkMode ? '#4b5563' : '#e5e7eb',
         top: Math.min(position.y, window.innerHeight - 400),
         left: Math.min(position.x, window.innerWidth - 320)
       }}
@@ -1065,7 +1151,16 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
         placeholder="Search for a block type..."
         value={filter}
         onChange={(e) => setFilter(e.target.value)}
-        className="w-full p-2 border border-gray-200 rounded mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className={`w-full p-2 border rounded mb-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+          isDarkMode 
+            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+            : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
+        }`}
+        style={{
+          backgroundColor: isDarkMode ? '#374151' : '#ffffff',
+          borderColor: isDarkMode ? '#4b5563' : '#e5e7eb',
+          color: isDarkMode ? '#ffffff' : '#111827'
+        }}
         autoFocus
       />
       <div className="space-y-1">
@@ -1074,17 +1169,39 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
             <button
               key={key}
               onClick={() => onSelect(key)}
-              className="w-full text-left p-2 hover:bg-gray-100 rounded flex items-center gap-3 transition-colors"
+              className={`w-full text-left p-2 rounded flex items-center gap-3 transition-colors ${
+                isDarkMode 
+                  ? 'hover:bg-gray-700' 
+                  : 'hover:bg-gray-100'
+              }`}
+              style={{
+                color: isDarkMode ? '#ffffff' : '#111827'
+              }}
             >
               <span className="text-lg w-8 text-center flex-shrink-0">{config.icon}</span>
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm text-gray-800">{config.label}</div>
-                <div className="text-xs text-gray-500 truncate">{config.description}</div>
+                <div 
+                  className={`font-medium text-sm transition-colors ${
+                    isDarkMode ? 'text-white' : 'text-gray-800'
+                  }`}
+                  style={{ color: isDarkMode ? '#ffffff' : '#1f2937' }}
+                >{config.label}</div>
+                <div 
+                  className={`text-xs truncate transition-colors ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}
+                  style={{ color: isDarkMode ? '#9ca3af' : '#6b7280' }}
+                >{config.description}</div>
               </div>
             </button>
           ))
         ) : (
-          <div className="text-center text-gray-500 py-4">
+          <div 
+            className={`text-center py-4 transition-colors ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}
+            style={{ color: isDarkMode ? '#9ca3af' : '#6b7280' }}
+          >
             <p className="text-sm">No blocks found</p>
           </div>
         )}
@@ -1094,7 +1211,7 @@ const BlockTypeSelector = ({ onSelect, onClose, position }) => {
 };
 
 // Sidebar Component
-const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange, onProjectUpdate, onProjectDelete, onPageDelete, pages, onWalletDisconnect, walletStatus, onProjectSelect, onResetData, onWalletConnect, setShowWalletModal }) => {
+const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProject, currentView, onViewChange, onProjectUpdate, onProjectDelete, onPageDelete, pages, onWalletDisconnect, walletStatus, onProjectSelect, onResetData, onWalletConnect, setShowWalletModal, toggleTheme, isDarkMode }) => {
   const [expandedProjects, setExpandedProjects] = useState(new Set(['personal', 'work']));
   const [searchTerm, setSearchTerm] = useState('');
   const [irysStatus, setIrysStatus] = useState('ready');
@@ -1225,52 +1342,76 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
   };
 
   return (
-    <div className="w-80 bg-gray-50 border-r border-gray-200 h-screen flex flex-col overflow-hidden sticky top-0">
+    <div className={`w-80 h-screen flex flex-col overflow-hidden sticky top-0 border-r transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-gray-800 border-gray-700' 
+        : 'bg-gray-50 border-gray-200'
+    }`}>
       {/* Workspace Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className={`p-4 border-b transition-colors duration-300 ${
+        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+      }`}>
         <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold">
             {typeof workspace.name === 'string' ? workspace.name.charAt(0) : ''}
           </div>
-          <span className="font-semibold text-gray-800">{workspace.name}</span>
+          <span className={`font-semibold transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-200' : 'text-gray-800'
+          }`}>{workspace.name}</span>
         </div>
         
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+          <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-500' : 'text-gray-400'
+          }`} />
           <input
             type="text"
             placeholder="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className={`w-full pl-10 pr-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 border transition-colors duration-300 ${
+              isDarkMode 
+                ? 'bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-400' 
+                : 'bg-white border-gray-200 text-gray-900 placeholder-gray-500'
+            }`}
           />
         </div>
       </div>
 
       {/* Wallet Status */}
-      <div className="p-4 border-b border-gray-200">
+      <div className={`p-4 border-b transition-colors duration-300 ${
+        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+      }`}>
         <div className="flex items-center gap-2 mb-2">
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${
               irysStatus === 'ready' ? 'bg-green-500' : 
               irysStatus === 'syncing' ? 'bg-yellow-500' : 'bg-red-500'
             }`}></div>
-            <span className="text-xs font-medium text-gray-600">
+            <span className={`text-xs font-medium transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
               Irys Network
             </span>
           </div>
           <button
             onClick={handleSyncData}
-            className="ml-auto p-1 hover:bg-gray-200 rounded"
+            className={`ml-auto p-1 rounded transition-colors ${
+              isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+            }`}
             disabled={irysStatus === 'syncing'}
           >
-            <Cloud className={`w-4 h-4 text-gray-400 ${irysStatus === 'syncing' ? 'animate-spin' : ''}`} />
+            <Cloud className={`w-4 h-4 transition-colors ${
+              isDarkMode ? 'text-gray-500' : 'text-gray-400'
+            } ${irysStatus === 'syncing' ? 'animate-spin' : ''}`} />
           </button>
         </div>
         
         {walletStatus?.connected ? (
-          <div className="text-xs text-gray-500 space-y-1">
+          <div className={`text-xs space-y-1 transition-colors duration-300 ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
             <div className="flex items-center gap-2">
               <Wallet className="w-3 h-3" />
               <span className="truncate">
@@ -1285,7 +1426,11 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
             </div>
             <button
               onClick={handleWalletDisconnect}
-              className="w-full text-xs text-red-600 hover:text-red-800 flex items-center gap-1 mt-2"
+              className={`w-full text-xs flex items-center gap-1 mt-2 transition-colors ${
+                isDarkMode 
+                  ? 'text-red-400 hover:text-red-300' 
+                  : 'text-red-600 hover:text-red-800'
+              }`}
             >
               <X className="w-3 h-3" />
               <span>Log Out</span>
@@ -1294,7 +1439,11 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
         ) : (
           <button
             onClick={() => setShowWalletModal(true)}
-            className="w-full text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            className={`w-full text-xs flex items-center gap-1 transition-colors ${
+              isDarkMode 
+                ? 'text-blue-400 hover:text-blue-300' 
+                : 'text-blue-600 hover:text-blue-800'
+            }`}
           >
             <Wallet className="w-3 h-3" />
             <span>Connect Wallet</span>
@@ -1302,7 +1451,9 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
         )}
         
         {storageStats && (
-          <div className="text-xs text-gray-500 space-y-1 mt-2">
+          <div className={`text-xs space-y-1 mt-2 transition-colors ${
+            isDarkMode ? 'text-gray-400' : 'text-gray-500'
+          }`}>
             <div className="flex justify-between">
               <span>Items:</span>
               <span>{storageStats.totalItems}</span>
@@ -1316,12 +1467,16 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
       </div>
 
       {/* Quick Actions */}
-      <div className="p-4 border-b border-gray-200">
+      <div className={`p-4 border-b transition-colors ${
+        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+      }`}>
         <div className="space-y-1">
           <button 
             onClick={() => onViewChange('home')}
             className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${
-              currentView === 'home' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+              currentView === 'home' 
+                ? (isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-700')
+                : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
             }`}
           >
             <Home className="w-4 h-4" />
@@ -1330,7 +1485,9 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
           <button 
             onClick={() => onViewChange('favorites')}
             className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${
-              currentView === 'favorites' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+              currentView === 'favorites' 
+                ? (isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-700')
+                : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
             }`}
           >
             <Star className="w-4 h-4" />
@@ -1339,7 +1496,9 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
           <button 
             onClick={() => onViewChange('recent')}
             className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${
-              currentView === 'recent' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+              currentView === 'recent' 
+                ? (isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-700')
+                : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
             }`}
           >
             <Clock className="w-4 h-4" />
@@ -1348,7 +1507,9 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
           <button 
             onClick={() => onViewChange('templates')}
             className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${
-              currentView === 'templates' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+              currentView === 'templates' 
+                ? (isDarkMode ? 'bg-blue-900/30 text-blue-300' : 'bg-blue-100 text-blue-700')
+                : (isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-100')
             }`}
           >
             <Layout className="w-4 h-4" />
@@ -1361,23 +1522,33 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Projects</span>
+            <span className={`text-sm font-medium transition-colors ${
+              isDarkMode ? 'text-gray-300' : 'text-gray-600'
+            }`}>Projects</span>
             <button
               onClick={onNewProject}
-              className="p-1 hover:bg-gray-200 rounded"
+              className={`p-1 rounded transition-colors ${
+                isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-200'
+              }`}
               title="New project"
             >
-              <FolderPlus className="w-4 h-4 text-gray-400" />
+              <FolderPlus className={`w-4 h-4 transition-colors ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+              }`} />
             </button>
           </div>
           
           <div className="space-y-1 pb-2">
             {Object.values(workspace.projects || {}).map((project) => (
               <div key={project.id} className="group">
-                <div className="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg">
+                <div className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                  isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                }`}>
                   <button
                     onClick={() => toggleProject(project.id)}
-                    className="p-1 hover:bg-gray-200 rounded"
+                    className={`p-1 rounded transition-colors ${
+                      isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'
+                    }`}
                   >
                     {expandedProjects.has(project.id) ? 
                       <ChevronDown className="w-3 h-3" /> : 
@@ -1392,19 +1563,31 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
                         type="text"
                         value={editingProjectName}
                         onChange={(e) => setEditingProjectName(e.target.value)}
-                        className="flex-1 sm:w-48 sm:min-w-0 sm:max-w-sm bg-white border border-gray-300 rounded-md text-sm placeholder-gray-400"
+                        className={`flex-1 sm:w-48 sm:min-w-0 sm:max-w-sm border rounded-md text-sm transition-colors ${
+                          isDarkMode 
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                            : 'bg-white border-gray-300 text-gray-900 placeholder-gray-400'
+                        }`}
                         placeholder="Project name"
                       />
                       <button
                         onClick={handleProjectSave}
-                        className="p-1 hover:bg-green-200 rounded text-green-600"
+                        className={`p-1 rounded transition-colors ${
+                          isDarkMode 
+                            ? 'hover:bg-green-900/30 text-green-400' 
+                            : 'hover:bg-green-200 text-green-600'
+                        }`}
                         title="Save"
                       >
                         <CheckSquare className="w-3 h-3" />
                       </button>
                       <button
                         onClick={handleProjectCancel}
-                        className="p-1 bg-red-200 rounded text-red-600"
+                        className={`p-1 rounded transition-colors ${
+                          isDarkMode 
+                            ? 'bg-red-900/30 text-red-400' 
+                            : 'bg-red-200 text-red-600'
+                        }`}
                         title="Cancel"
                       >
                         <X className="w-3 h-3" />
@@ -1413,25 +1596,39 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
                   ) : (
                     <>
                       <span className="text-sm" onClick={() => onProjectSelect(project.id)}>{project.icon}</span>
-                      <span className="text-sm flex-1 truncate" onClick={() => onProjectSelect(project.id)}>{project.name}</span>
+                      <span className={`text-sm flex-1 truncate transition-colors ${
+                        isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                      }`} onClick={() => onProjectSelect(project.id)}>{project.name}</span>
                       <button
                         onClick={() => handleProjectEdit(project)}
-                        className="p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100"
+                        className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-colors ${
+                          isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'
+                        }`}
                         title="Edit project"
                       >
-                        <Edit3 className="w-3 h-3 text-gray-400" />
+                        <Edit3 className={`w-3 h-3 transition-colors ${
+                          isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                        }`} />
                       </button>
                       <button
                         onClick={() => onNewPage(project.id)}
-                        className="p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100"
+                        className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-colors ${
+                          isDarkMode ? 'hover:bg-gray-600' : 'hover:bg-gray-200'
+                        }`}
                         title="New page"
                       >
-                        <Plus className="w-3 h-3 text-gray-400" />
+                        <Plus className={`w-3 h-3 transition-colors ${
+                          isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                        }`} />
                       </button>
                       {project.id !== 'personal' && project.id !== 'work' && (
                         <button
                           onClick={() => handleProjectDelete(project.id)}
-                          className="p-1 bg-red-200 rounded opacity-0 group-hover:opacity-100"
+                          className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-colors ${
+                            isDarkMode 
+                              ? 'bg-red-900/30 text-red-400' 
+                              : 'bg-red-200 text-red-600'
+                          }`}
                           title="Delete project"
                         >
                           <Trash2 className="w-3 h-3" />
@@ -1446,23 +1643,31 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
                     {getProjectPages(project.id).map((page) => (
                       <div 
                         key={page.id}
-                        className={`group flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg cursor-pointer ${
-                          currentPageId === page.id ? 'bg-blue-100' : ''
+                        className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                          currentPageId === page.id 
+                            ? (isDarkMode ? 'bg-blue-900/30' : 'bg-blue-100')
+                            : (isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100')
                         }`}
                         onClick={() => onPageSelect(page.id)}
                       >
                         <span className="text-sm">{page.icon}</span>
-                        <span className="text-sm flex-1 break-words" style={{ wordBreak: 'break-word', overflow: 'visible' }}>{page.title}</span>
+                        <span className={`text-sm flex-1 break-words transition-colors ${
+                          isDarkMode ? 'text-gray-200' : 'text-gray-800'
+                        }`} style={{ wordBreak: 'break-word', overflow: 'visible' }}>{page.title}</span>
                         {page.isFavorite && <Star className="w-3 h-3 text-yellow-500 fill-current" />}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onPageDelete(page.id);
                           }}
-                          className="p-1 hover:bg-red-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                          className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-all ${
+                            isDarkMode 
+                              ? 'hover:bg-red-900/30 text-red-400' 
+                              : 'hover:bg-red-200 text-red-500'
+                          }`}
                           title="Delete page"
                         >
-                          <Trash2 className="w-3 h-3 text-red-500" />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     ))}
@@ -1475,11 +1680,29 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
       </div>
 
       {/* Settings Section */}
-      <div className="p-4 border-t border-gray-200">
+      <div className={`p-4 border-t transition-colors duration-300 ${
+        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+      }`}>
         <div className="space-y-1">
           <button
+            onClick={toggleTheme}
+            className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm transition-colors ${
+              isDarkMode 
+                ? 'text-gray-300 hover:bg-gray-700' 
+                : 'text-gray-700 hover:bg-gray-100'
+            }`}
+            title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            <span className="w-4 h-4 text-lg flex items-center justify-center">
+              {isDarkMode ? '☀️' : '🌙'}
+            </span>
+            <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+          </button>
+          <button
             onClick={onResetData}
-            className="w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm text-red-600 hover:bg-red-50 transition-colors"
+            className={`w-full flex items-center gap-2 p-2 rounded-lg text-left text-sm text-red-600 transition-colors ${
+              isDarkMode ? 'hover:bg-red-900/20' : 'hover:bg-red-50'
+            }`}
             title="Reset all data"
           >
             <Trash2 className="w-4 h-4" />
@@ -1493,7 +1716,7 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
 };
 
 // Page Editor Component
-const PageEditor = ({ page, onPageUpdate }) => {
+const PageEditor = ({ page, onPageUpdate, isDarkMode }) => {
   const [editingBlock, setEditingBlock] = useState(null);
   const [showBlockSelector, setShowBlockSelector] = useState(false);
   const [blockSelectorPosition, setBlockSelectorPosition] = useState({ x: 0, y: 0 });
@@ -1652,13 +1875,19 @@ const PageEditor = ({ page, onPageUpdate }) => {
   };
 
   return (
-    <div className="flex-1 bg-white">
+    <div className={`flex-1 transition-colors duration-300 ${
+      isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
+    }`}>
       {/* Page Header */}
-      <div className="border-b border-gray-200 p-1">
+      <div className={`border-b p-1 transition-colors duration-300 ${
+        isDarkMode ? 'border-gray-700' : 'border-gray-200'
+      }`}>
         <div className="max-w-4xl mx-auto">
           {/* Save Status Bar */}
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className={`flex items-center gap-2 text-sm transition-colors duration-300 ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
               <div className={`w-2 h-2 rounded-full ${
                 saveStatus === 'saved' ? 'bg-green-500' : 
                 saveStatus === 'saving' ? 'bg-yellow-500' : 
@@ -1716,7 +1945,11 @@ const PageEditor = ({ page, onPageUpdate }) => {
                 type="text"
                 value={page.title}
                 onChange={handlePageTitleChange}
-                className="text-4xl font-bold bg-transparent border-none outline-none w-full min-w-0 placeholder-gray-400 focus:bg-blue-50 transition-colors"
+                className={`text-4xl font-bold bg-transparent border-none outline-none w-full min-w-0 transition-colors ${
+                  isDarkMode 
+                    ? 'text-gray-100 placeholder-gray-500 focus:bg-gray-800' 
+                    : 'text-gray-900 placeholder-gray-400 focus:bg-blue-50'
+                }`}
                 placeholder="Click to edit title"
                 style={{ 
                   wordBreak: 'break-word', 
@@ -1737,7 +1970,9 @@ const PageEditor = ({ page, onPageUpdate }) => {
       </div>
 
       {/* Page Content */}
-      <div className="p-6">
+      <div className={`p-6 transition-colors duration-300 ${
+        isDarkMode ? 'bg-gray-900' : 'bg-white'
+      }`}>
         <div className="max-w-4xl mx-auto">
           <div className="space-y-1">
             {currentBlocks.map((block, index) => (
@@ -1749,6 +1984,7 @@ const PageEditor = ({ page, onPageUpdate }) => {
                 insertBlock={insertBlock}
                 isEditing={editingBlock === block.id}
                 setEditingBlock={setEditingBlock}
+                isDarkMode={isDarkMode}
                 onDragStart={(blockId, blockIndex) => {
                   // Handle drag start if needed
                 }}
@@ -1765,10 +2001,14 @@ const PageEditor = ({ page, onPageUpdate }) => {
             ))}
             
             {/* Add new block button */}
-            <div className="flex items-center gap-2 py-4">
+            <div className="mt-8 text-center">
               <button
                 onClick={() => insertBlock(currentBlocks[currentBlocks.length - 1]?.id || 'new', 'paragraph')}
-                className="flex items-center gap-2 text-gray-400 hover:text-gray-600 text-sm"
+                className={`inline-flex items-center gap-2 transition-colors duration-300 ${
+                  isDarkMode 
+                    ? 'text-gray-400 hover:text-gray-200' 
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
               >
                 <Plus className="w-4 h-4" />
                 <span>Click to add a block</span>
@@ -1784,6 +2024,7 @@ const PageEditor = ({ page, onPageUpdate }) => {
           onSelect={handleBlockTypeSelect}
           onClose={() => setShowBlockSelector(false)}
           position={blockSelectorPosition}
+          isDarkMode={isDarkMode}
         />
       )}
       
@@ -1801,7 +2042,7 @@ const PageEditor = ({ page, onPageUpdate }) => {
 };
 
 // Main View Component for different sections
-const MainView = ({ view, pages, onPageSelect, onNewPage, onPageDelete, workspace, selectedProjectId, onProjectSelect }) => {
+const MainView = ({ view, pages, onPageSelect, onNewPage, onPageDelete, workspace, selectedProjectId, onProjectSelect, isDarkMode }) => {
   const getViewTitle = () => {
     switch (view) {
       case 'home': return 'Home';
@@ -1842,29 +2083,45 @@ const MainView = ({ view, pages, onPageSelect, onNewPage, onPageDelete, workspac
   const viewPages = getViewPages();
 
   return (
-    <div className="flex-1 bg-white">
+    <div className={`flex-1 transition-colors duration-300 ${
+      isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
+    }`}>
       <div className="p-6">
         <div className="max-w-4xl mx-auto">
           <div className="flex items-center gap-4 mb-8">
             {getViewIcon()}
-            <h1 className="text-3xl font-bold text-gray-800">{getViewTitle()}</h1>
+            <h1 className={`text-3xl font-bold transition-colors duration-300 ${
+              isDarkMode ? 'text-white' : 'text-gray-800'
+            }`}>{getViewTitle()}</h1>
           </div>
 
           {view === 'templates' ? (
             <div className="text-center py-12">
-              <Layout className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-600 mb-2">Templates coming soon</h2>
-              <p className="text-gray-500">We're working on bringing you awesome templates to get started quickly.</p>
+              <Layout className={`w-16 h-16 mx-auto mb-4 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+              }`} />
+              <h2 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>Templates coming soon</h2>
+              <p className={`transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>We're working on bringing you awesome templates to get started quickly.</p>
             </div>
           ) : viewPages.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 mx-auto text-gray-400 mb-4">
+              <div className={`w-16 h-16 mx-auto mb-4 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-500' : 'text-gray-400'
+              }`}>
                 {view === 'favorites' ? <Star className="w-16 h-16" /> : <FileText className="w-16 h-16" />}
               </div>
-              <h2 className="text-xl font-semibold text-gray-600 mb-2">
+              <h2 className={`text-xl font-semibold mb-2 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-300' : 'text-gray-600'
+              }`}>
                 {view === 'favorites' ? 'No favorites yet' : 'No pages yet'}
               </h2>
-              <p className="text-gray-500 mb-4">
+              <p className={`mb-4 transition-colors duration-300 ${
+                isDarkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
                 {view === 'favorites' 
                   ? 'Star pages to add them to your favorites' 
                   : 'Create your first page to get started'}
@@ -1883,7 +2140,11 @@ const MainView = ({ view, pages, onPageSelect, onNewPage, onPageDelete, workspac
               {viewPages.map((page) => (
                 <div
                   key={page.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer group relative"
+                  className={`border rounded-lg p-4 hover:shadow-md transition-all duration-300 cursor-pointer group relative ${
+                    isDarkMode 
+                      ? 'border-gray-700 bg-gray-800 hover:bg-gray-750' 
+                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                  }`}
                 >
                   <div
                   onClick={() => onPageSelect(page.id)}
@@ -1891,13 +2152,19 @@ const MainView = ({ view, pages, onPageSelect, onNewPage, onPageDelete, workspac
                 >
                   <div className="flex items-center gap-3 mb-3">
                     <span className="text-2xl">{page.icon}</span>
-                      <h3 className="font-medium text-gray-800 flex-1 break-words" style={{ wordBreak: 'break-word', overflow: 'visible' }}>{page.title}</h3>
+                      <h3 className={`font-medium flex-1 break-words transition-colors duration-300 ${
+                        isDarkMode ? 'text-white' : 'text-gray-800'
+                      }`} style={{ wordBreak: 'break-word', overflow: 'visible' }}>{page.title}</h3>
                     {page.isFavorite && <Star className="w-4 h-4 text-yellow-500 fill-current" />}
                   </div>
-                  <p className="text-sm text-gray-500 mb-2">
+                  <p className={`text-sm mb-2 transition-colors duration-300 ${
+                    isDarkMode ? 'text-gray-400' : 'text-gray-500'
+                  }`}>
                     {workspace.projects?.[page.projectId]?.name || 'No project'}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className={`text-xs transition-colors duration-300 ${
+                    isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                  }`}>
                     {view === 'recent' && page.lastModified 
                       ? `Modified ${new Date(page.lastModified).toLocaleDateString()}`
                       : `${page.blocks?.length || 0} blocks`}
@@ -1908,7 +2175,9 @@ const MainView = ({ view, pages, onPageSelect, onNewPage, onPageDelete, workspac
                       e.stopPropagation();
                       onPageDelete(page.id);
                     }}
-                    className="absolute top-2 right-2 p-1 hover:bg-red-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                    className={`absolute top-2 right-2 p-1 rounded opacity-0 group-hover:opacity-100 transition-all duration-300 ${
+                      isDarkMode ? 'hover:bg-red-900' : 'hover:bg-red-200'
+                    }`}
                     title="Delete page"
                   >
                     <Trash2 className="w-4 h-4 text-red-500" />
@@ -1938,6 +2207,24 @@ export const NotionClone = () => {
   const [walletStatus, setWalletStatus] = useState(irysService.getWalletStatus());
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('irysNote_darkMode');
+    return saved ? JSON.parse(saved) : false;
+  });
+
+  // Обработка темы
+  useEffect(() => {
+    localStorage.setItem('irysNote_darkMode', JSON.stringify(isDarkMode));
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  const toggleTheme = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   // Инициализация и загрузка данных
   useEffect(() => {
@@ -2186,7 +2473,7 @@ export const NotionClone = () => {
   }
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className={`flex h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}>
       <div className="flex-shrink-0">
             <Sidebar
         workspace={workspace}
@@ -2206,6 +2493,8 @@ export const NotionClone = () => {
         onResetData={resetData}
         onWalletConnect={handleWalletConnect}
         setShowWalletModal={setShowWalletModal}
+        toggleTheme={toggleTheme}
+        isDarkMode={isDarkMode}
       />
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -2214,6 +2503,7 @@ export const NotionClone = () => {
           key={currentPage.id}
           page={currentPage}
           onPageUpdate={handlePageUpdate}
+          isDarkMode={isDarkMode}
         />
       ) : (
         <MainView
@@ -2225,6 +2515,7 @@ export const NotionClone = () => {
           workspace={workspace}
           selectedProjectId={selectedProjectId}
           onProjectSelect={handleProjectSelect}
+          isDarkMode={isDarkMode}
         />
       )}
       </div>
@@ -2250,7 +2541,9 @@ const COLUMN_TYPES = [
   { type: 'email', label: 'Email' },
 ];
 
-function EditableTable() {
+function EditableTable({ tableId = null, isDarkMode = false }) {
+  // Генерируем уникальный ID для каждой новой таблицы
+  const [currentTableId] = useState(tableId || `table_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [title, setTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [columns, setColumns] = useState([
@@ -2276,51 +2569,58 @@ function EditableTable() {
   useEffect(() => {
     const loadTableData = async () => {
       try {
-        // Сначала пробуем загрузить из localStorage (быстро)
-        const localData = localStorage.getItem('irysNote_database');
-        if (localData) {
-          const parsed = JSON.parse(localData);
-          setTitle(parsed.title || '');
-          setColumns(parsed.columns || [{ id: 'name', name: '', editing: false }, { id: 'text', name: '', editing: false }]);
-          setRows(parsed.rows || [{ id: Date.now().toString(), values: Object.fromEntries([['name', ''], ['text', '']]), emoji: '' }]);
-          setLastSaved(parsed.timestamp);
-          console.log('Loaded database table from localStorage');
-        }
-        
-        // Затем пробуем загрузить из Irys (медленно, в фоне)
-        const savedData = await irysService.loadDatabase();
-        if (savedData && savedData.timestamp > (JSON.parse(localData || '{}').timestamp || 0)) {
-          setTitle(savedData.title || '');
-          setColumns(savedData.columns || [{ id: 'name', name: '', editing: false }, { id: 'text', name: '', editing: false }]);
-          setRows(savedData.rows || [{ id: Date.now().toString(), values: Object.fromEntries([['name', ''], ['text', '']]), emoji: '' }]);
-          setLastSavedToIrys(savedData.timestamp);
-          console.log('Updated database table from Irys');
+        // Если передан tableId, пытаемся загрузить существующую таблицу
+        if (tableId) {
+          // Сначала пробуем загрузить из localStorage (быстро)
+          const localData = localStorage.getItem(`irysNote_database_${tableId}`);
+          if (localData) {
+            const parsed = JSON.parse(localData);
+            setTitle(parsed.title || '');
+            setColumns(parsed.columns || [{ id: 'name', name: '', editing: false }, { id: 'text', name: '', editing: false }]);
+            setRows(parsed.rows || [{ id: Date.now().toString(), values: Object.fromEntries([['name', ''], ['text', '']]), emoji: '' }]);
+            setLastSaved(parsed.timestamp);
+            console.log('Loaded database table from localStorage');
+          }
+          
+          // Затем пробуем загрузить из Irys (медленно, в фоне)
+          const savedData = await irysService.loadDatabase();
+          if (savedData && savedData.timestamp > (JSON.parse(localData || '{}').timestamp || 0)) {
+            setTitle(savedData.title || '');
+            setColumns(savedData.columns || [{ id: 'name', name: '', editing: false }, { id: 'text', name: '', editing: false }]);
+            setRows(savedData.rows || [{ id: Date.now().toString(), values: Object.fromEntries([['name', ''], ['text', '']]), emoji: '' }]);
+            setLastSavedToIrys(savedData.timestamp);
+            console.log('Updated database table from Irys');
+          }
+        } else {
+          // Для новой таблицы оставляем пустые значения по умолчанию
+          console.log('Created new empty database table with ID:', currentTableId);
         }
       } catch (e) {
         console.warn('Failed to load database table:', e);
       }
     };
     loadTableData();
-  }, []);
+  }, [tableId, currentTableId]);
 
   // Локальное сохранение (без подписи)
   const saveToLocalStorage = useCallback(() => {
     try {
       const tableData = {
+        id: currentTableId,
         title,
         columns: columns.map(col => ({ ...col, editing: false })),
         rows,
         timestamp: Date.now()
       };
       
-      localStorage.setItem('irysNote_database', JSON.stringify(tableData));
+      localStorage.setItem(`irysNote_database_${currentTableId}`, JSON.stringify(tableData));
       setLastSaved(Date.now());
       setHasUnsavedChanges(false);
-      console.log('Database table saved to localStorage');
+      console.log('Database table saved to localStorage with ID:', currentTableId);
     } catch (e) {
       console.error('Error saving to localStorage:', e);
     }
-  }, [title, columns, rows]);
+  }, [currentTableId, title, columns, rows]);
 
   // Сохранение в Irys (с подписью, только по кнопке)
   const saveToIrys = useCallback(async () => {
@@ -2329,6 +2629,7 @@ function EditableTable() {
     try {
       setSaving(true);
       const tableData = {
+        id: currentTableId,
         title,
         columns: columns.map(col => ({ ...col, editing: false })),
         rows,
@@ -2339,10 +2640,10 @@ function EditableTable() {
       if (result.success) {
         setLastSavedToIrys(Date.now());
         setHasUnsavedChanges(false);
-        // Также сохраняем локально
-        localStorage.setItem('irysNote_database', JSON.stringify(tableData));
+        // Также сохраняем локально с уникальным ID
+        localStorage.setItem(`irysNote_database_${currentTableId}`, JSON.stringify(tableData));
         setLastSaved(Date.now());
-        console.log('Database table saved to Irys:', result.id);
+        console.log('Database table saved to Irys with ID:', currentTableId, 'Transaction:', result.id);
       } else {
         console.error('Failed to save database table:', result.error);
       }
@@ -2351,7 +2652,7 @@ function EditableTable() {
     } finally {
       setSaving(false);
     }
-  }, [title, columns, rows, saving]);
+  }, [saving, currentTableId, title, columns, rows]);
 
   // Дебаунсированное локальное автосохранение (БЕЗ подписи)
   useEffect(() => {
@@ -2465,20 +2766,36 @@ function EditableTable() {
   }, [selectedRows, rows.length]);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm w-full max-w-4xl mx-auto my-4">
+    <div className={`border rounded-xl shadow-sm w-full max-w-4xl mx-auto my-4 transition-colors ${
+      isDarkMode 
+        ? 'bg-gray-800 border-gray-600' 
+        : 'bg-white border-gray-200'
+    }`}>
       {/* Toolbar для удаления выбранных */}
       {selectedRows.length > 0 && (
-        <div className="flex items-center gap-2 p-2 bg-gray-50 border-b border-gray-200 rounded-t-xl">
+        <div className={`flex items-center gap-2 p-2 border-b rounded-t-xl transition-colors ${
+          isDarkMode 
+            ? 'bg-gray-700 border-gray-600' 
+            : 'bg-gray-50 border-gray-200'
+        }`}>
           <span className="text-blue-600 font-medium">{selectedRows.length} selected</span>
-          <button className="text-gray-500 hover:text-red-600 p-1" onClick={deleteSelectedRows} title="Delete selected">
+          <button className={`p-1 transition-colors ${
+            isDarkMode ? 'text-gray-400 hover:text-red-400' : 'text-gray-500 hover:text-red-600'
+          }`} onClick={deleteSelectedRows} title="Delete selected">
             <Trash2 className="w-5 h-5" />
           </button>
-          <button className="text-gray-400 hover:text-gray-700 p-1" onClick={clearSelection} title="Clear selection">✕</button>
+          <button className={`p-1 transition-colors ${
+            isDarkMode ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-700'
+          }`} onClick={clearSelection} title="Clear selection">✕</button>
         </div>
       )}
       <div className="flex items-center gap-3 mb-2 mt-4 ml-4">
         <input
-          className="text-2xl font-bold text-gray-700 bg-transparent outline-none px-1 py-0.5 w-64 focus:bg-gray-100"
+          className={`text-2xl font-bold bg-transparent outline-none px-1 py-0.5 w-64 transition-colors ${
+            isDarkMode 
+              ? 'text-gray-200 focus:bg-gray-700' 
+              : 'text-gray-700 focus:bg-gray-100'
+          }`}
           value={title}
           readOnly={!editingTitle}
           autoFocus={editingTitle}
@@ -2500,10 +2817,18 @@ function EditableTable() {
               onMouseLeave={() => setHoveredHeader(false)}
             >
               {/* Квадратик для выбора всех строк — только слева от первого столбца (Name) */}
-              <th className="bg-white border-b border-gray-200 px-2 py-2 text-center align-middle w-8">
+              <th className={`border-b px-2 py-2 text-center align-middle w-8 transition-colors ${
+                isDarkMode 
+                  ? 'bg-gray-800 border-gray-600' 
+                  : 'bg-white border-gray-200'
+              }`}>
                 {(hoveredHeader || selectedRows.length > 0 || allRowsManuallySelected) && (
                   <div
-                    className={`w-5 h-5 rounded border border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-100 ${((selectedRows.length === rows.length && rows.length > 0) || allRowsManuallySelected) ? 'bg-blue-100 border-blue-400' : ''}`}
+                    className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer transition-colors ${
+                      isDarkMode 
+                        ? 'border-gray-500 hover:bg-gray-700' 
+                        : 'border-gray-300 hover:bg-gray-100'
+                    } ${((selectedRows.length === rows.length && rows.length > 0) || allRowsManuallySelected) ? 'bg-blue-100 border-blue-400' : ''}`}
                     onClick={toggleAllRows}
                     title="Select all rows"
                   >
@@ -2514,23 +2839,37 @@ function EditableTable() {
               {columns.map((col, idx) => (
                 <th
                   key={col.id}
-                  className={`bg-white border-b border-gray-200 px-4 py-2 text-left font-semibold text-gray-700 relative ${idx < columns.length - 1 ? 'border-r border-gray-200' : ''}`}
+                  className={`border-b px-4 py-2 text-left font-semibold relative transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-800 border-gray-600 text-gray-200' 
+                      : 'bg-white border-gray-200 text-gray-700'
+                  } ${idx < columns.length - 1 ? (isDarkMode ? 'border-r border-gray-600' : 'border-r border-gray-200') : ''}`}
                   onMouseEnter={() => setHoveredColHeader(col.id)}
                   onMouseLeave={() => setHoveredColHeader(null)}
                 >
                   {/* Квадратик справа только у остальных столбцов (кроме первого) */}
                   {idx !== 0 && hoveredColHeader === col.id && (
                     <div
-                      className={`absolute right-0 top-1/2 -translate-y-1/2 w-5 h-5 rounded border border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-100`}
+                      className={`absolute right-0 top-1/2 -translate-y-1/2 w-5 h-5 rounded border flex items-center justify-center cursor-pointer transition-colors ${
+                        isDarkMode 
+                          ? 'border-gray-500 hover:bg-gray-700' 
+                          : 'border-gray-300 hover:bg-gray-100'
+                      }`}
                       title="Delete column"
                       onClick={() => deleteColumn(col.id)}
                     >
-                      <Trash2 className="w-4 h-4 text-gray-400" />
+                      <Trash2 className={`w-4 h-4 transition-colors ${
+                        isDarkMode ? 'text-gray-500' : 'text-gray-400'
+                      }`} />
                     </div>
                   )}
                   {col.editing ? (
                     <input
-                      className="border-none outline-none bg-transparent font-semibold text-gray-700 px-1 py-0.5 w-32 min-w-[180px] focus:bg-gray-100"
+                      className={`border-none outline-none bg-transparent font-semibold px-1 py-0.5 w-32 min-w-[180px] transition-colors ${
+                        isDarkMode 
+                          ? 'text-gray-200 focus:bg-gray-700' 
+                          : 'text-gray-700 focus:bg-gray-100'
+                      }`}
                       value={col.name}
                       readOnly={!col.editing}
                       autoFocus={col.editing}
@@ -2545,7 +2884,11 @@ function EditableTable() {
                   ) : (
                     <span
                       onClick={() => startEditCol(col.id)}
-                      className={`cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5 ${col.name ? 'text-gray-700' : 'text-gray-300'}`}
+                      className={`cursor-pointer rounded px-1 py-0.5 transition-colors ${
+                        isDarkMode 
+                          ? 'hover:bg-gray-700' 
+                          : 'hover:bg-gray-100'
+                      } ${col.name ? (isDarkMode ? 'text-gray-200' : 'text-gray-700') : (isDarkMode ? 'text-gray-500' : 'text-gray-300')}`}
                     >
                       {col.name || <span className="text-gray-300">Column</span>}
                     </span>
@@ -2553,9 +2896,17 @@ function EditableTable() {
                 </th>
               ))}
               {/* Плюсик справа от последнего столбца */}
-              <th className="bg-white border-b border-gray-200 px-2 py-2 text-center align-middle">
+              <th className={`border-b px-2 py-2 text-center align-middle transition-colors ${
+                isDarkMode 
+                  ? 'bg-gray-800 border-gray-600' 
+                  : 'bg-white border-gray-200'
+              }`}>
                 <button
-                  className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-blue-500 bg-transparent border-none shadow-none"
+                  className={`w-6 h-6 flex items-center justify-center bg-transparent border-none shadow-none transition-colors ${
+                    isDarkMode 
+                      ? 'text-gray-500 hover:text-blue-400' 
+                      : 'text-gray-400 hover:text-blue-500'
+                  }`}
                   style={{ zIndex: 2 }}
                   onClick={addColumn}
                   title="Add column"
@@ -2569,15 +2920,25 @@ function EditableTable() {
             {rows.map(row => (
               <tr
                 key={row.id}
-                className={`hover:bg-gray-50 transition-colors ${selectedRows.includes(row.id) ? 'bg-blue-50' : ''}`}
+                className={`transition-colors ${
+                  isDarkMode 
+                    ? 'hover:bg-gray-700' 
+                    : 'hover:bg-gray-50'
+                } ${selectedRows.includes(row.id) ? (isDarkMode ? 'bg-blue-900/30' : 'bg-blue-50') : ''}`}
                 onMouseEnter={() => setHoveredRow(row.id)}
                 onMouseLeave={() => setHoveredRow(null)}
               >
                 {/* Квадратик вне таблицы слева */}
-                <td className="border-b border-gray-200 px-2 py-2 text-center align-middle w-8">
+                <td className={`border-b px-2 py-2 text-center align-middle w-8 transition-colors ${
+                  isDarkMode ? 'border-gray-600' : 'border-gray-200'
+                }`}>
                   {(hoveredRow === row.id || selectedRows.includes(row.id)) && (
                     <div
-                      className={`w-5 h-5 rounded border border-gray-300 flex items-center justify-center cursor-pointer hover:bg-gray-100 ${selectedRows.includes(row.id) ? 'bg-blue-100 border-blue-400' : ''}`}
+                      className={`w-5 h-5 rounded border flex items-center justify-center cursor-pointer transition-colors ${
+                        isDarkMode 
+                          ? 'border-gray-500 hover:bg-gray-700' 
+                          : 'border-gray-300 hover:bg-gray-100'
+                      } ${selectedRows.includes(row.id) ? 'bg-blue-100 border-blue-400' : ''}`}
                       onClick={() => toggleRowSelect(row.id)}
                       title="Select row"
                     >
@@ -2586,13 +2947,19 @@ function EditableTable() {
                   )}
                 </td>
                 {columns.map((col, idx) => (
-                  <td key={col.id} className={`border-b border-gray-200 px-4 py-2 ${idx < columns.length - 1 ? 'border-r border-gray-200' : ''}`}>
+                  <td key={col.id} className={`border-b px-4 py-2 transition-colors ${
+                    isDarkMode ? 'border-gray-600' : 'border-gray-200'
+                  } ${idx < columns.length - 1 ? (isDarkMode ? 'border-r border-gray-600' : 'border-r border-gray-200') : ''}`}>
                     {/* Для Name: иконка документа слева от текста, очень близко */}
                     {col.id === 'name' && (
                       <span className="inline-flex items-center gap-1">
                         <button
                           ref={el => emojiIconRefs.current[row.id] = el}
-                          className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-blue-500 bg-transparent border-none shadow-none mr-1"
+                          className={`w-6 h-6 flex items-center justify-center bg-transparent border-none shadow-none mr-1 transition-colors ${
+                            isDarkMode 
+                              ? 'text-gray-500 hover:text-blue-400' 
+                              : 'text-gray-400 hover:text-blue-500'
+                          }`}
                           onClick={() => setEmojiPickerRow(row.id)}
                           title="Set emoji"
                           type="button"
@@ -2601,7 +2968,11 @@ function EditableTable() {
                         </button>
                         <input
                           style={{ width: `${Math.round(260 * 2 / columns.length)}px` }}
-                          className="bg-transparent outline-none focus:bg-gray-100 px-2 rounded"
+                          className={`bg-transparent outline-none px-2 rounded transition-colors ${
+                            isDarkMode 
+                              ? 'text-gray-200 focus:bg-gray-700' 
+                              : 'text-gray-900 focus:bg-gray-100'
+                          }`}
                           value={row.values[col.id] || ''}
                           onChange={e => editCell(row.id, col.id, e.target.value)}
                         />
@@ -2619,7 +2990,11 @@ function EditableTable() {
                     )}
                     {col.id !== 'name' && (
                       <input
-                        className="w-full bg-transparent outline-none focus:bg-gray-100 min-w-[180px] px-2 rounded"
+                        className={`w-full bg-transparent outline-none min-w-[180px] px-2 rounded transition-colors ${
+                          isDarkMode 
+                            ? 'text-gray-200 focus:bg-gray-700' 
+                            : 'text-gray-900 focus:bg-gray-100'
+                        }`}
                         value={row.values[col.id] || ''}
                         onChange={e => editCell(row.id, col.id, e.target.value)}
                       />
@@ -2627,12 +3002,18 @@ function EditableTable() {
                   </td>
                 ))}
                 {/* Добавить пустой td с border-r для визуального завершения линии справа */}
-                <td className="border-b border-r border-gray-200"></td>
+                <td className={`border-b border-r transition-colors ${
+                  isDarkMode ? 'border-gray-600' : 'border-gray-200'
+                }`}></td>
               </tr>
             ))}
             {/* Строка + New page */}
             <tr>
-              <td colSpan={columns.length + 2} className="text-left text-gray-400 px-4 py-3 cursor-pointer hover:bg-gray-50" onClick={addRow}>
+              <td colSpan={columns.length + 2} className={`text-left px-4 py-3 cursor-pointer transition-colors ${
+                isDarkMode 
+                  ? 'text-gray-500 hover:bg-gray-700' 
+                  : 'text-gray-400 hover:bg-gray-50'
+              }`} onClick={addRow}>
                 + New page
               </td>
             </tr>

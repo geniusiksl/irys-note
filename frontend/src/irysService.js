@@ -18,11 +18,10 @@ class IrysService {
   constructor() {
     this.cache = new Map();
     this.cacheTimeout = 30 * 60 * 1000; // 30 минут
-    this.batchSize = 10;
+    this.batchSize = 10; // Размер батча для загрузки
+    this.graphqlUnavailable = false;
+    this.lastGraphQLCheck = 0;
     this.persistentStorageKey = 'irysNote_persistentData';
-    this.blockchainUnavailable = false; // Флаг недоступности блокчейна
-    this.lastBlockchainCheck = 0; // Время последней проверки
-    this.blockchainCheckInterval = 5 * 60 * 1000; // 5 минут между проверками
     
     // Загружаем данные из localStorage при инициализации
     this.loadPersistentData();
@@ -243,41 +242,62 @@ class IrysService {
     }
   }
 
-  async saveDataToIrys(data, dataType = 'general', additionalTags = []) {
-    const irys = getIrysWithWallet();
-    await irys.ready();
-    
-    let walletAddress = window.ethereum?.selectedAddress;
-    if (!walletAddress) {
-      walletAddress = localStorage.getItem('walletAddress');
+  async saveDataToIrys(data, dataType = 'general', walletAddress, additionalTags = []) {
+    try {
+      console.log('🔗 Connecting to Irys...');
+      const irys = getIrysWithWallet();
+      await irys.ready();
+      
+      console.log('✅ Irys connection established:', {
+        address: irys.address,
+        token: irys.token,
+        api: irys.api
+      });
+
       if (!walletAddress) {
-        throw new Error('Wallet not connected');
+        walletAddress = localStorage.getItem('walletAddress');
+        if (!walletAddress) {
+          throw new Error('Wallet not connected');
+        }
       }
+    
+      // Валидация данных
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid data format');
+      }
+    
+      const tags = [
+        { name: "wallet", value: walletAddress },
+        { name: "app", value: "IrysNote" },
+        { name: "app-id", value: "irys-notebook" },
+        { name: "type", value: dataType },
+        { name: "timestamp", value: Date.now().toString() },
+        { name: "version", value: "2.0" },
+        { name: "content-type", value: "application/json" },
+        ...additionalTags
+      ];
+      
+      console.log('📤 Uploading to Irys with tags:', tags.map(tag => `${tag.name}=${tag.value}`).join(', '));
+      
+      const receipt = await irys.upload(JSON.stringify(data), { tags });
+      
+      console.log(`✅ Data successfully saved to Irys:`, {
+        transactionId: receipt.id,
+        dataType: dataType,
+        wallet: walletAddress,
+        dataSize: JSON.stringify(data).length,
+        irysUrl: `https://gateway.irys.xyz/${receipt.id}`
+      });
+      
+      // Сохраняем в кэш и localStorage для быстрого доступа
+      this.saveRecentTransaction(receipt.id, dataType);
+      this.setCachedData(receipt.id, data);
+      
+      return receipt.id;
+    } catch (error) {
+      console.error('❌ Failed to save data to Irys:', error);
+      throw error;
     }
-    
-    // Валидация данных
-    if (!data || typeof data !== 'object') {
-      throw new Error('Invalid data format');
-    }
-    
-    const tags = [
-      { name: "wallet", value: walletAddress },
-      { name: "app", value: "IrysNote" },
-      { name: "app-id", value: "irys-notebook" }, // Уникальный Application ID
-      { name: "type", value: dataType },
-      { name: "timestamp", value: Date.now().toString() },
-      { name: "version", value: "2.0" },
-      { name: "content-type", value: "application/json" },
-      ...additionalTags
-    ];
-    
-    const receipt = await irys.upload(JSON.stringify(data), { tags });
-    
-    // Сохраняем в кэш и localStorage для быстрого доступа
-    this.saveRecentTransaction(receipt.id, dataType);
-    this.setCachedData(receipt.id, data);
-    
-    return receipt.id;
   }
 
   async sendIdToServer(endpoint, id) {
@@ -289,30 +309,54 @@ class IrysService {
     // Проверяем кэш
     const cached = this.getCachedData(id);
     if (cached) {
+      console.log(`📋 Loading data from cache for ${id}`);
       return cached;
     }
     
-    const res = await fetch(`https://gateway.irys.xyz/${id}`);
-    if (!res.ok) {
-      throw new Error(`Failed to fetch data from Irys: ${res.status} ${res.statusText}`);
+    // Пробуем загрузить из Irys gateway
+    const gateways = [
+      `https://gateway.irys.xyz/${id}`,
+      `https://arweave.net/${id}`,
+      `https://arweave.dev/${id}`
+    ];
+    
+    for (const gateway of gateways) {
+      try {
+        console.log(`🔄 Trying to load data from: ${gateway}`);
+        const res = await fetch(gateway);
+        
+        if (!res.ok) {
+          console.warn(`❌ Failed to fetch from ${gateway}: ${res.status} ${res.statusText}`);
+          continue;
+        }
+        
+        let data;
+        try {
+          data = await res.json();
+        } catch (e) {
+          console.warn(`❌ Invalid JSON from ${gateway}:`, e.message);
+          continue;
+        }
+        
+        // Валидация структуры данных
+        if (!data || typeof data !== 'object') {
+          console.warn(`❌ Invalid data structure from ${gateway}`);
+          continue;
+        }
+        
+        console.log(`✅ Successfully loaded data from ${gateway}`);
+        
+        // Кэшируем результат
+        this.setCachedData(id, data);
+        
+        return data;
+      } catch (error) {
+        console.warn(`❌ Error loading from ${gateway}:`, error.message);
+        continue;
+      }
     }
     
-    let data;
-    try {
-      data = await res.json();
-    } catch (e) {
-      throw new Error(`Invalid JSON data for transaction ${id}`);
-    }
-    
-    // Валидация структуры данных
-    if (!data || typeof data !== 'object') {
-      throw new Error(`Invalid data structure for transaction ${id}`);
-    }
-    
-    // Кэшируем результат
-    this.setCachedData(id, data);
-    
-    return data;
+    throw new Error(`Failed to load data from any gateway for transaction ${id}`);
   }
 
   // Батчевая загрузка данных
@@ -343,37 +387,37 @@ class IrysService {
     return results;
   }
 
-  // Проверка доступности блокчейна
-  shouldSkipBlockchain() {
+  // Проверка доступности GraphQL endpoints (НЕ блокчейна в целом)
+  shouldSkipGraphQLQuery() {
     const now = Date.now();
     
-    // Если блокчейн недоступен и прошло меньше 5 минут
-    if (this.blockchainUnavailable && (now - this.lastBlockchainCheck) < this.blockchainCheckInterval) {
+    // Если GraphQL endpoints недоступны и прошло меньше 2 минут
+    if (this.graphqlUnavailable && (now - this.lastGraphQLCheck) < (2 * 60 * 1000)) {
       return true;
     }
     
     return false;
   }
 
-  // Отметка о недоступности блокчейна
-  markBlockchainUnavailable() {
-    this.blockchainUnavailable = true;
-    this.lastBlockchainCheck = Date.now();
-    console.warn('Blockchain marked as unavailable for 5 minutes');
+  // Отметка о недоступности GraphQL endpoints
+  markGraphQLUnavailable() {
+    this.graphqlUnavailable = true;
+    this.lastGraphQLCheck = Date.now();
+    console.warn('GraphQL endpoints marked as unavailable for 2 minutes (saving still works)');
   }
 
-  // Отметка о доступности блокчейна
-  markBlockchainAvailable() {
-    this.blockchainUnavailable = false;
-    this.lastBlockchainCheck = 0;
-    console.log('Blockchain marked as available');
+  // Отметка о доступности GraphQL endpoints
+  markGraphQLAvailable() {
+    this.graphqlUnavailable = false;
+    this.lastGraphQLCheck = 0;
+    console.log('GraphQL endpoints marked as available');
   }
 
   // Получение всех транзакций с пагинацией и fallback механизмами
   async getAllTransactionsByWallet(walletAddress, dataType = null) {
-    // Быстрая проверка - если блокчейн недоступен
-    if (this.shouldSkipBlockchain()) {
-      console.log('Skipping blockchain check - marked as unavailable');
+    // Быстрая проверка - если GraphQL endpoints недоступны
+    if (this.shouldSkipGraphQLQuery()) {
+      console.log('Skipping GraphQL query - endpoints marked as unavailable');
       return [];
     }
 
@@ -385,132 +429,103 @@ class IrysService {
     
     const tagFilters = [
       { name: "wallet", values: [walletAddress] },
-      { name: "app", values: ["IrysNote"] },
-      { name: "app-id", values: ["irys-notebook"] } // Фильтр по Application ID
+      { name: "app", values: ["IrysNote"] }
+      // Убираем жесткий фильтр по app-id для лучшей совместимости
     ];
     
     if (dataType) {
       tagFilters.push({ name: "type", values: [dataType] });
     }
     
-    // Список GraphQL endpoints для fallback
-    const graphqlEndpoints = [
-      'https://arweave.net/graphql',           // Основной Arweave GraphQL
-      'https://arweave-search.goldsky.com/graphql', // Альтернативный Goldsky
-      'https://gateway.redstone.finance/graphql' // Fallback RedStone
-    ];
+    // Используем только Irys GraphQL endpoint - быстрый и надежный
+    const endpoint = 'https://uploader.irys.xyz/graphql';
+    const endpointName = 'Irys';
     
     while (hasNextPage && retryCount < maxRetries) {
-      let success = false;
-      
-      for (const endpoint of graphqlEndpoints) {
-        try {
-          const query = `
-            query {
-              transactions(
-                tags: ${JSON.stringify(tagFilters)}
-                sort: HEIGHT_DESC
-                first: 50
-                ${cursor ? `after: "${cursor}"` : ''}
-              ) {
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
-                edges {
-                  cursor
-                  node {
-                    id
-                    block {
-                      height
-                      timestamp
-                    }
-                    tags {
-                      name
-                      value
-                    }
+      try {
+        // Irys GraphQL запрос
+        const query = `
+          {
+            transactions(owners: ["${walletAddress}"], limit: 100) {
+              edges {
+                node {
+                  id
+                  address
+                  tags {
+                    name
+                    value
                   }
                 }
               }
             }
-          `;
-          
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 секунд таймаут (увеличили)
-          
-          const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'User-Agent': 'IrysNote/1.0'
-            },
-            body: JSON.stringify({ query }),
-            signal: controller.signal
-          });
-          
-          clearTimeout(timeoutId);
-          
-          if (!response.ok) {
-            console.warn(`❌ GraphQL endpoint ${endpoint} failed: ${response.status} ${response.statusText}`);
-            if (endpoint.includes('arweave.net')) {
-              console.warn('Arweave GraphQL endpoint is overloaded (HTTP 570), trying alternatives...');
-            } else if (endpoint.includes('goldsky.com')) {
-              console.warn('Goldsky GraphQL endpoint failed, trying next fallback...');
-            } else if (endpoint.includes('redstone.finance')) {
-              console.warn('RedStone GraphQL endpoint failed, trying next fallback...');
-            }
-            continue; // Пробуем следующий endpoint
           }
+        `;
+          
+          console.log(`🔍 Querying ${endpointName}:`, query.replace(/\s+/g, ' ').trim());
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
+        
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ query }),
+          signal: controller.signal,
+          mode: 'cors'
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`Irys GraphQL failed: ${response.status} ${response.statusText}`);
+        }
           
           const result = await response.json();
-          
-          // Проверяем на ошибки GraphQL
-          if (result.errors && result.errors.length > 0) {
-            console.warn(`GraphQL errors from ${endpoint}:`, result.errors);
-            // Если есть критические ошибки, пробуем следующий endpoint
-            if (result.errors.some(err => err.message.includes('500') || err.message.includes('timeout'))) {
-              continue;
-            }
-          }
-          
-          const data = result.data;
-          if (!data || !data.transactions) {
-            console.warn(`No transaction data from ${endpoint}`);
-            continue;
-          }
-          
-          // Логируем результат для отладки
-          console.log(`✅ GraphQL success from ${endpoint}:`, {
-            hasData: !!data,
-            transactionCount: data.transactions?.edges?.length || 0,
-            hasNextPage: data.transactions?.pageInfo?.hasNextPage
-          });
-          
-          const transactions = data.transactions.edges || [];
-          allTransactions.push(...transactions);
-          
-          hasNextPage = data.transactions.pageInfo?.hasNextPage || false;
-          cursor = data.transactions.pageInfo?.endCursor;
-          
-          success = true;
-          retryCount = 0; // Сбрасываем счетчик при успехе
-          break; // Выходим из цикла по endpoints
-          
-        } catch (error) {
-          console.warn(`❌ Error with GraphQL endpoint ${endpoint}:`, error.message);
-          if (error.name === 'AbortError') {
-            console.warn('⏰ Request timed out after 8 seconds');
-          } else if (error.message.includes('CORS')) {
-            console.warn('🔒 CORS error - browser blocking request');
-          } else if (error.message.includes('network')) {
-            console.warn('🌐 Network connectivity issue');
-          }
-          
-          if (endpoint.includes('redstone.finance')) {
-            console.log('🔄 Trying Arweave fallback endpoint...');
-          }
-          continue; // Пробуем следующий endpoint
+        
+        // Проверяем на ошибки GraphQL
+        if (result.errors && result.errors.length > 0) {
+          console.warn(`GraphQL errors from Irys:`, result.errors);
+          throw new Error(`GraphQL errors: ${result.errors.map(e => e.message).join(', ')}`);
         }
+        
+        const data = result.data;
+        if (!data || !data.transactions) {
+          console.warn(`No transaction data from Irys`);
+          break; // Выходим из цикла, так как нет данных
+        }
+        
+        console.log(`✅ Irys query successful: found ${data.transactions?.edges?.length || 0} transactions`);
+        
+        const transactions = data.transactions.edges || [];
+          
+          // Логируем найденные транзакции
+        if (transactions.length > 0) {
+          console.log(`📋 Found ${transactions.length} transactions from wallet ${walletAddress}:`);
+          transactions.forEach((tx, index) => {
+            const node = tx.node;
+            const tags = node.tags || [];
+            console.log(`  ${index + 1}. ID: ${node.id}`);
+            console.log(`     Tags:`, tags.map(tag => `${tag.name}="${tag.value}"`).join(', '));
+          });
+        } else {
+          console.log(`ℹ️ No transactions found from wallet ${walletAddress} in Irys`);
+          console.log(`💡 This is normal if you haven't saved any data yet`);
+        }
+        
+        allTransactions.push(...transactions);
+        
+        // Irys не поддерживает пагинацию в том же формате, что Arweave
+        hasNextPage = false; // Пока отключаем пагинацию для простоты
+        
+        break; // Выходим из цикла
+        
+      } catch (error) {
+        console.warn(`❌ Error with Irys GraphQL:`, error.message);
+        this.markGraphQLUnavailable();
+        break; // Выходим из цикла при ошибке
       }
       
       if (!success) {
@@ -539,6 +554,18 @@ class IrysService {
         console.warn('Reached maximum transaction limit (1000)');
         break;
       }
+    }
+    
+    console.log(`Found ${allTransactions.length} blockchain transactions`);
+    
+    // Если не найдено транзакций, выводим диагностическую информацию
+    if (allTransactions.length === 0) {
+      console.log(`🔄 No tagged transactions found for wallet ${walletAddress}`);
+      console.log(`💡 Possible reasons for missing transactions:`);
+      console.log(`   - Transactions not yet indexed (may take 5-15 minutes)`);
+      console.log(`   - Transactions saved with different tags`);
+      console.log(`   - Check wallet address correctness`);
+      console.log(`   - Transaction might have been sent to different network`);
     }
     
     return allTransactions;
@@ -599,19 +626,19 @@ class IrysService {
       // 2. Пытаемся получить транзакции из блокчейна (только если доступен)
       let allTransactions = [];
       
-      if (!this.shouldSkipBlockchain()) {
+      if (!this.shouldSkipGraphQLQuery()) {
         try {
           console.log('Fetching transactions from blockchain...');
           allTransactions = await this.getAllTransactionsByWallet(walletAddress, dataType);
           console.log(`Found ${allTransactions.length} blockchain transactions`);
           
-          // Если успешно получили данные, отмечаем блокчейн как доступный
+          // Если успешно получили данные, отмечаем GraphQL как доступный
           if (allTransactions.length > 0) {
-            this.markBlockchainAvailable();
+            this.markGraphQLAvailable();
           }
         } catch (e) {
-          console.warn('Blockchain unavailable, using cached/recent data only:', e.message);
-          this.markBlockchainUnavailable();
+          console.warn('GraphQL unavailable, using cached/recent data only:', e.message);
+          this.markGraphQLUnavailable();
         }
       } else {
         console.log('Skipping blockchain fetch - using cached data only');
@@ -732,7 +759,15 @@ class IrysService {
 
   async savePage(page) {
     try {
-      const id = await this.saveDataToIrys(page, 'page');
+      let walletAddress = window.ethereum?.selectedAddress;
+      if (!walletAddress) {
+        walletAddress = localStorage.getItem('walletAddress');
+        if (!walletAddress) {
+          throw new Error('Wallet not connected');
+        }
+      }
+      
+      const id = await this.saveDataToIrys(page, 'page', walletAddress);
       return { success: true, id };
     } catch (e) {
       return { success: false, error: e.message };
@@ -741,7 +776,15 @@ class IrysService {
   
   async savePages(pages) {
     try {
-      const id = await this.saveDataToIrys(pages, 'pages', [
+      let walletAddress = window.ethereum?.selectedAddress;
+      if (!walletAddress) {
+        walletAddress = localStorage.getItem('walletAddress');
+        if (!walletAddress) {
+          throw new Error('Wallet not connected');
+        }
+      }
+      
+      const id = await this.saveDataToIrys(pages, 'pages', walletAddress, [
         { name: 'pages_count', value: Object.keys(pages).length.toString() }
       ]);
       return { success: true, id };
@@ -766,7 +809,15 @@ class IrysService {
   
   async saveWorkspace(workspace) {
     try {
-      const id = await this.saveDataToIrys(workspace, 'workspace', [
+      let walletAddress = window.ethereum?.selectedAddress;
+      if (!walletAddress) {
+        walletAddress = localStorage.getItem('walletAddress');
+        if (!walletAddress) {
+          throw new Error('Wallet not connected');
+        }
+      }
+      
+      const id = await this.saveDataToIrys(workspace, 'workspace', walletAddress, [
         { name: 'workspace_name', value: workspace.name || 'Untitled' },
         { name: 'projects_count', value: Object.keys(workspace.projects || {}).length.toString() }
       ]);
