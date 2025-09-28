@@ -242,7 +242,7 @@ class IrysService {
     }
   }
 
-  async saveDataToIrys(data, dataType = 'general', walletAddress, additionalTags = []) {
+  async saveDataToIrys(data, dataType = 'general', walletAddress, additionalTags = [], privacy = 'private') {
     try {
       console.log('🔗 Connecting to Irys...');
       const irys = getIrysWithWallet();
@@ -260,22 +260,50 @@ class IrysService {
           throw new Error('Wallet not connected');
         }
       }
+
+      // Проверяем, что кошелек из Irys SDK совпадает с переданным адресом
+      if (irys.address && irys.address.toLowerCase() !== walletAddress.toLowerCase()) {
+        console.warn(`⚠️ Wallet mismatch: Irys SDK wallet ${irys.address} vs provided wallet ${walletAddress}`);
+        // Используем кошелек из Irys SDK как основной
+        walletAddress = irys.address;
+        localStorage.setItem('walletAddress', walletAddress);
+      }
     
       // Валидация данных
       if (!data || typeof data !== 'object') {
         throw new Error('Invalid data format');
       }
     
+      // Генерируем уникальный ID для публичных заметок
+      let publicId = null;
+      if (privacy === 'public') {
+        publicId = this.generatePublicId();
+        data.publicId = publicId;
+        data.isPublic = true;
+      } else {
+        data.isPublic = false;
+      }
+    
       const tags = [
         { name: "wallet", value: walletAddress },
+        { name: "owner", value: walletAddress }, // Дублируем для лучшей идентификации
         { name: "app", value: "IrysNote" },
         { name: "app-id", value: "irys-notebook" },
         { name: "type", value: dataType },
+        { name: "privacy", value: privacy },
         { name: "timestamp", value: Date.now().toString() },
         { name: "version", value: "2.0" },
         { name: "content-type", value: "application/json" },
         ...additionalTags
       ];
+      
+      // Добавляем теги для публичных заметок
+      if (privacy === 'public') {
+        tags.push(
+          { name: "shareable", value: "true" },
+          { name: "public-id", value: publicId }
+        );
+      }
       
       console.log('📤 Uploading to Irys with tags:', tags.map(tag => `${tag.name}=${tag.value}`).join(', '));
       
@@ -315,9 +343,7 @@ class IrysService {
     
     // Пробуем загрузить из Irys gateway
     const gateways = [
-      `https://gateway.irys.xyz/${id}`,
-      `https://arweave.net/${id}`,
-      `https://arweave.dev/${id}`
+      `https://gateway.irys.xyz/${id}`
     ];
     
     for (const gateway of gateways) {
@@ -356,7 +382,7 @@ class IrysService {
       }
     }
     
-    throw new Error(`Failed to load data from any gateway for transaction ${id}`);
+    throw new Error(`Failed to load data from Irys gateway for transaction ${id}`);
   }
 
   // Батчевая загрузка данных
@@ -427,14 +453,15 @@ class IrysService {
     let retryCount = 0;
     const maxRetries = 2; // Увеличили до 2 попыток
     
-    const tagFilters = [
-      { name: "wallet", values: [walletAddress] },
-      { name: "app", values: ["IrysNote"] }
-      // Убираем жесткий фильтр по app-id для лучшей совместимости
-    ];
+    // Формируем фильтры для GraphQL запроса
+    const queryArgs = {
+      owners: [walletAddress],
+      limit: 100
+    };
     
+    // Добавляем фильтр по типу данных если указан
     if (dataType) {
-      tagFilters.push({ name: "type", values: [dataType] });
+      queryArgs.tags = [{ name: "type", values: [dataType] }];
     }
     
     // Используем только Irys GraphQL endpoint - быстрый и надежный
@@ -443,10 +470,27 @@ class IrysService {
     
     while (hasNextPage && retryCount < maxRetries) {
       try {
-        // Irys GraphQL запрос
+        // Формируем GraphQL запрос с правильными параметрами
+        let queryString = `transactions(owners: ["${walletAddress}"], limit: 100`;
+        
+        // Добавляем фильтр по тегам если есть
+        if (dataType) {
+          queryString += `, tags: [{ name: "type", values: ["${dataType}"] }]`;
+        }
+        
+        // Добавляем пагинацию если есть cursor
+        if (cursor) {
+          queryString += `, after: "${cursor}"`;
+        }
+        
+        // Добавляем сортировку по времени (новые первыми)
+        queryString += `, order: DESC`;
+        
+        queryString += `)`;
+        
         const query = `
           {
-            transactions(owners: ["${walletAddress}"], limit: 100) {
+            ${queryString} {
               edges {
                 node {
                   id
@@ -455,7 +499,9 @@ class IrysService {
                     name
                     value
                   }
+                  timestamp
                 }
+                cursor
               }
             }
           }
@@ -517,10 +563,27 @@ class IrysService {
         
         allTransactions.push(...transactions);
         
-        // Irys не поддерживает пагинацию в том же формате, что Arweave
-        hasNextPage = false; // Пока отключаем пагинацию для простоты
+        // Проверяем есть ли еще страницы для пагинации
+        if (transactions.length > 0) {
+          // Получаем cursor из последней транзакции для следующей страницы
+          const lastTransaction = transactions[transactions.length - 1];
+          if (lastTransaction.cursor) {
+            cursor = lastTransaction.cursor;
+            console.log(`📄 Found cursor for next page: ${cursor}`);
+          } else {
+            hasNextPage = false;
+            console.log(`📄 No more pages available`);
+          }
+        } else {
+          hasNextPage = false;
+          console.log(`📄 No transactions found, stopping pagination`);
+        }
         
-        break; // Выходим из цикла
+        // Если получили меньше транзакций чем лимит, значит это последняя страница
+        if (transactions.length < 100) {
+          hasNextPage = false;
+          console.log(`📄 Received ${transactions.length} transactions (less than limit), stopping pagination`);
+        }
         
       } catch (error) {
         console.warn(`❌ Error with Irys GraphQL:`, error.message);
@@ -757,7 +820,7 @@ class IrysService {
     }
   }
 
-  async savePage(page) {
+  async savePage(page, privacy = 'private') {
     try {
       let walletAddress = window.ethereum?.selectedAddress;
       if (!walletAddress) {
@@ -767,7 +830,7 @@ class IrysService {
         }
       }
       
-      const id = await this.saveDataToIrys(page, 'page', walletAddress);
+      const id = await this.saveDataToIrys(page, 'page', walletAddress, [], privacy);
       return { success: true, id };
     } catch (e) {
       return { success: false, error: e.message };
@@ -1018,6 +1081,13 @@ class IrysService {
     return 'irys-notebook';
   }
 
+  // Генерация уникального публичного ID
+  generatePublicId() {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    return `public_${timestamp}_${random}`;
+  }
+
   // Поиск данных по типу с детальной информацией
   async getDataByType(dataType) {
     try {
@@ -1070,6 +1140,427 @@ class IrysService {
     } catch (e) {
       console.error('Failed to get data history:', e);
       return [];
+    }
+  }
+
+  // === ПУБЛИЧНЫЕ ЗАМЕТКИ ===
+
+  // Поиск публичных заметок по типу
+  async getPublicNotes(dataType = null, limit = 50) {
+    try {
+      console.log('🔍 Searching for public notes...');
+      
+      // Формируем теги для поиска
+      const tags = [{ name: "privacy", values: ["public"] }];
+      if (dataType) {
+        tags.push({ name: "type", values: [dataType] });
+      }
+      
+      const query = `
+        {
+          transactions(limit: ${limit}, order: DESC, tags: ${JSON.stringify(tags)}) {
+            edges {
+              node {
+                id
+                address
+                tags {
+                  name
+                  value
+                }
+                timestamp
+              }
+            }
+          }
+        }
+      `;
+      
+      console.log('🔍 Querying Irys:', query);
+      
+      const endpoint = 'https://uploader.irys.xyz/graphql';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`GraphQL failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.errors && result.errors.length > 0) {
+        console.warn(`GraphQL errors: ${result.errors.map(e => e.message).join(', ')}`);
+      }
+      
+      const transactions = result.data?.transactions?.edges || [];
+      console.log(`📋 Found ${transactions.length} public transactions`);
+      
+      // Загружаем данные для каждой транзакции
+      const publicNotes = [];
+      for (const edge of transactions) {
+        try {
+          const data = await this.loadDataFromIrys(edge.node.id);
+          if (data && data.isPublic) {
+            publicNotes.push({
+              id: edge.node.id,
+              data: data,
+              address: edge.node.address,
+              timestamp: edge.node.timestamp,
+              publicId: data.publicId,
+              tags: edge.node.tags.reduce((acc, tag) => {
+                acc[tag.name] = tag.value;
+                return acc;
+              }, {})
+            });
+          }
+        } catch (e) {
+          console.warn(`Failed to load public note ${edge.node.id}:`, e.message);
+        }
+      }
+      
+      console.log(`✅ Loaded ${publicNotes.length} public notes`);
+      return publicNotes;
+    } catch (e) {
+      console.error('Failed to get public notes:', e);
+      return [];
+    }
+  }
+
+  // Поиск публичной заметки по публичному ID (DEPRECATED - используйте getPublicNoteByTransactionId)
+  async getPublicNoteByPublicId(publicId) {
+    try {
+      console.log(`🔍 Searching for public note with ID: ${publicId}`);
+      
+      // Сначала пробуем поиск по тегу public-id
+      let query = `
+        {
+          transactions(tags: [{ name: "public-id", values: ["${publicId}"] }]) {
+            edges {
+              node {
+                id
+                address
+                tags {
+                  name
+                  value
+                }
+                timestamp
+              }
+            }
+          }
+        }
+      `;
+      
+      const endpoint = 'https://uploader.irys.xyz/graphql';
+      let response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`GraphQL failed: ${response.status} ${response.statusText}`);
+      }
+      
+      let result = await response.json();
+      
+      if (result.errors && result.errors.length > 0) {
+        console.warn(`GraphQL errors: ${result.errors.map(e => e.message).join(', ')}`);
+      }
+      
+      let transactions = result.data?.transactions?.edges || [];
+      console.log(`Found ${transactions.length} transactions with public-id tag`);
+      
+      // Если не найдено по public-id, пробуем поиск по privacy=public
+      if (transactions.length === 0) {
+        console.log('Trying alternative search by privacy=public...');
+        query = `
+          {
+            transactions(tags: [{ name: "privacy", values: ["public"] }], limit: 100) {
+              edges {
+                node {
+                  id
+                  address
+                  tags {
+                    name
+                    value
+                  }
+                  timestamp
+                }
+              }
+            }
+          }
+        `;
+        
+        response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ query })
+        });
+        
+        if (response.ok) {
+          result = await response.json();
+          transactions = result.data?.transactions?.edges || [];
+          console.log(`Found ${transactions.length} public transactions`);
+          
+          // Ищем среди них нужный publicId
+          for (const edge of transactions) {
+            try {
+              const data = await this.loadDataFromIrys(edge.node.id);
+              if (data && data.publicId === publicId) {
+                console.log(`✅ Found matching public note: ${edge.node.id}`);
+                return {
+                  id: edge.node.id,
+                  data: data,
+                  address: edge.node.address,
+                  timestamp: edge.node.timestamp,
+                  publicId: data.publicId,
+                  tags: edge.node.tags.reduce((acc, tag) => {
+                    acc[tag.name] = tag.value;
+                    return acc;
+                  }, {})
+                };
+              }
+            } catch (e) {
+              console.warn(`Failed to load data for ${edge.node.id}:`, e.message);
+            }
+          }
+        }
+      }
+      
+      if (transactions.length === 0) {
+        console.log(`❌ No public note found with ID: ${publicId}`);
+        return null;
+      }
+      
+      const edge = transactions[0];
+      console.log(`📋 Loading data for transaction: ${edge.node.id}`);
+      const data = await this.loadDataFromIrys(edge.node.id);
+      
+      return {
+        id: edge.node.id,
+        data: data,
+        address: edge.node.address,
+        timestamp: edge.node.timestamp,
+        publicId: data.publicId,
+        tags: edge.node.tags.reduce((acc, tag) => {
+          acc[tag.name] = tag.value;
+          return acc;
+        }, {})
+      };
+    } catch (e) {
+      console.error('Failed to get public note by ID:', e);
+      return null;
+    }
+  }
+
+  // Обобщенная функция для создания ссылки (public или private)
+  createShareableLink(type, id) {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/${type}/${id}`;
+  }
+
+  // Обобщенная функция для копирования ссылки
+  async copyShareableLink(type, id) {
+    try {
+      const link = this.createShareableLink(type, id);
+      await navigator.clipboard.writeText(link);
+      return { success: true, link };
+    } catch (e) {
+      console.error(`Failed to copy ${type} link:`, e);
+      return { success: false, error: e.message };
+    }
+  }
+
+  // Создание публичной ссылки для заметки (используем transaction ID)
+  createPublicLink(transactionId) {
+    return this.createShareableLink('public', transactionId);
+  }
+
+  // Копирование публичной ссылки в буфер обмена
+  async copyPublicLink(transactionId) {
+    return this.copyShareableLink('public', transactionId);
+  }
+
+  // Создание приватной ссылки для заметки (используем transaction ID)
+  createPrivateLink(transactionId) {
+    return this.createShareableLink('private', transactionId);
+  }
+
+  // Копирование приватной ссылки в буфер обмена
+  async copyPrivateLink(transactionId) {
+    return this.copyShareableLink('private', transactionId);
+  }
+
+  // Загрузка публичной заметки по transaction ID
+  async getPublicNoteByTransactionId(transactionId) {
+    try {
+      console.log(`🔍 Loading public note by transaction ID: ${transactionId}`);
+      
+      const data = await this.loadDataFromIrys(transactionId);
+      
+      if (!data || !data.isPublic) {
+        console.log(`❌ Transaction ${transactionId} is not a public note`);
+        return null;
+      }
+      
+      console.log(`✅ Found public note: ${transactionId}`);
+      return {
+        id: transactionId,
+        data: data,
+        publicId: data.publicId, // Оставляем для совместимости
+        isPublic: true
+      };
+    } catch (e) {
+      console.error('Failed to get public note by transaction ID:', e);
+      return null;
+    }
+  }
+
+  // Получение информации о транзакции
+  async getTransactionInfo(transactionId) {
+    try {
+      console.log(`🔍 Getting transaction info for: ${transactionId}`);
+      
+      // Попробуем получить информацию через GraphQL с поиском по ID
+      const query = `
+        {
+          transactions(first: 1, ids: ["${transactionId}"]) {
+            edges {
+              node {
+                id
+                address
+                tags {
+                  name
+                  value
+                }
+                timestamp
+              }
+            }
+          }
+        }
+      `;
+      
+      const endpoint = 'https://uploader.irys.xyz/graphql';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ query })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`GraphQL failed: ${response.status} ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.errors && result.errors.length > 0) {
+        console.warn(`GraphQL errors: ${result.errors.map(e => e.message).join(', ')}`);
+      }
+      
+      const transactions = result.data?.transactions?.edges || [];
+      
+      if (transactions.length === 0) {
+        console.log(`❌ Transaction ${transactionId} not found in GraphQL, trying alternative approach`);
+        // Альтернативный подход - используем данные из кэша или возвращаем базовую информацию
+        return {
+          id: transactionId,
+          address: null, // Не можем определить без GraphQL
+          timestamp: null,
+          tags: {}
+        };
+      }
+      
+      const edge = transactions[0];
+      return {
+        id: edge.node.id,
+        address: edge.node.address,
+        timestamp: edge.node.timestamp,
+        tags: edge.node.tags.reduce((acc, tag) => {
+          acc[tag.name] = tag.value;
+          return acc;
+        }, {})
+      };
+    } catch (e) {
+      console.error('Failed to get transaction info:', e);
+      // Возвращаем базовую информацию даже при ошибке
+      return {
+        id: transactionId,
+        address: null,
+        timestamp: null,
+        tags: {}
+      };
+    }
+  }
+
+  // Загрузка приватной заметки по transaction ID
+  async getPrivateNoteByTransactionId(transactionId) {
+    try {
+      console.log(`🔍 Loading private note by transaction ID: ${transactionId}`);
+      
+      // Проверяем, что кошелек подключен
+      const currentWallet = localStorage.getItem('walletAddress');
+      if (!currentWallet) {
+        console.log(`❌ Wallet not connected`);
+        return { error: 'Wallet not connected', requiresWallet: true };
+      }
+      
+      const data = await this.loadDataFromIrys(transactionId);
+      
+      if (!data) {
+        console.log(`❌ Transaction ${transactionId} not found`);
+        return null;
+      }
+      
+      // Проверяем, что это приватная заметка (не публичная)
+      if (data.isPublic === true) {
+        console.log(`❌ Transaction ${transactionId} is public, not private`);
+        return null;
+      }
+      
+      // Получаем информацию о транзакции для проверки владельца
+      const transactionInfo = await this.getTransactionInfo(transactionId);
+      
+      // Если не можем получить информацию о транзакции, пропускаем проверку владельца
+      // но все равно требуем подключенный кошелек
+      if (transactionInfo && transactionInfo.address) {
+        // Проверяем, что текущий кошелек является владельцем транзакции
+        if (transactionInfo.address.toLowerCase() !== currentWallet.toLowerCase()) {
+          console.log(`❌ Wallet mismatch: current ${currentWallet}, transaction owner ${transactionInfo.address}`);
+          return { error: 'Access denied: This private note belongs to a different wallet', requiresWallet: true };
+        }
+      } else {
+        // Попробуем найти информацию о владельце в тегах данных
+        const dataOwner = data.walletAddress || data.owner;
+        if (dataOwner && dataOwner.toLowerCase() !== currentWallet.toLowerCase()) {
+          console.log(`❌ Data owner mismatch: current ${currentWallet}, data owner ${dataOwner}`);
+          return { error: 'Access denied: This private note belongs to a different wallet', requiresWallet: true };
+        }
+        console.log(`⚠️ Could not verify transaction owner for ${transactionId}, allowing access with connected wallet`);
+      }
+      
+      console.log(`✅ Found private note: ${transactionId}`);
+      return {
+        id: transactionId,
+        data: data,
+        isPublic: false,
+        owner: transactionInfo.address
+      };
+    } catch (e) {
+      console.error('Failed to get private note by transaction ID:', e);
+      return null;
     }
   }
 }

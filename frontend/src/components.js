@@ -41,7 +41,13 @@ import {
   Layout,
   Sparkles,
   ChevronLeft,
-  Menu
+  Menu,
+  Lock,
+  Globe,
+  Share2,
+  Copy,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { irysService } from './irysService';
@@ -1716,7 +1722,7 @@ const Sidebar = ({ workspace, currentPageId, onPageSelect, onNewPage, onNewProje
 };
 
 // Page Editor Component
-const PageEditor = ({ page, onPageUpdate, isDarkMode }) => {
+const PageEditor = ({ page, onPageUpdate, isDarkMode, pagePrivacy, setPagePrivacy }) => {
   const [editingBlock, setEditingBlock] = useState(null);
   const [showBlockSelector, setShowBlockSelector] = useState(false);
   const [blockSelectorPosition, setBlockSelectorPosition] = useState({ x: 0, y: 0 });
@@ -1835,7 +1841,7 @@ const PageEditor = ({ page, onPageUpdate, isDarkMode }) => {
 
 
 
-  const handleManualSave = async () => {
+  const handleManualSave = async (privacy = 'private') => {
     if (!walletStatus?.connected) {
       alert('Please connect your wallet first to save to Irys');
       return;
@@ -1843,10 +1849,33 @@ const PageEditor = ({ page, onPageUpdate, isDarkMode }) => {
     
     setSaveStatus('saving');
     try {
-      const result = await irysService.savePage(page);
+      const result = await irysService.savePage(page, privacy);
       console.log('Page manually saved to Irys:', result);
       setSaveStatus('saved');
       setLastSaved(new Date().toLocaleTimeString());
+      
+      // Сохраняем маппинг между локальным ID и транзакционным ID
+      if (result.success && result.id) {
+        const pageMapping = JSON.parse(localStorage.getItem('irysNote_pageMapping') || '{}');
+        pageMapping[page.id] = result.id;
+        localStorage.setItem('irysNote_pageMapping', JSON.stringify(pageMapping));
+        console.log(`📝 Saved mapping: ${page.id} -> ${result.id}`);
+      }
+      
+      // Если заметка сохранена, показываем ссылку для копирования
+      if (result.success && result.id) {
+        if (privacy === 'public') {
+          const copyResult = await irysService.copyPublicLink(result.id);
+          if (copyResult.success) {
+            alert(`Public note saved! Link copied to clipboard: ${copyResult.link}`);
+          }
+        } else if (privacy === 'private') {
+          const copyResult = await irysService.copyPrivateLink(result.id);
+          if (copyResult.success) {
+            alert(`Private note saved! Link copied to clipboard: ${copyResult.link}`);
+          }
+        }
+      }
     } catch (error) {
       console.error('Failed to save to Irys:', error);
       setSaveStatus('error');
@@ -1911,18 +1940,46 @@ const PageEditor = ({ page, onPageUpdate, isDarkMode }) => {
                 <Star className={`w-5 h-5 ${page.isFavorite ? 'fill-current' : ''}`} />
               </button>
               
+              {/* Privacy Toggle */}
+              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setPagePrivacy('private')}
+                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                    pagePrivacy === 'private' 
+                      ? 'bg-white text-gray-700 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Private note - only visible to you"
+                >
+                  <Lock className="w-3 h-3" />
+                  Private
+                </button>
+                <button
+                  onClick={() => setPagePrivacy('public')}
+                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+                    pagePrivacy === 'public' 
+                      ? 'bg-white text-gray-700 shadow-sm' 
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  title="Public note - shareable with others"
+                >
+                  <Globe className="w-3 h-3" />
+                  Public
+                </button>
+              </div>
+              
               <button
-                onClick={handleManualSave}
+                onClick={() => handleManualSave(pagePrivacy)}
                 disabled={saveStatus === 'saving' || !walletStatus?.connected}
                 className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
                   walletStatus?.connected 
                     ? 'bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50' 
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
-                title={walletStatus?.connected ? 'Save to Irys' : 'Connect wallet to save'}
+                title={walletStatus?.connected ? `Save as ${pagePrivacy} note to Irys` : 'Connect wallet to save'}
               >
                 <Cloud className={`w-4 h-4 ${saveStatus === 'saving' ? 'animate-spin' : ''}`} />
-                {saveStatus === 'saving' ? 'Saving...' : 'Save to Irys'}
+                {saveStatus === 'saving' ? 'Saving...' : `Save as ${pagePrivacy === 'public' ? 'Public' : 'Private'}`}
               </button>
               
               <div className="flex items-center gap-1 text-xs text-gray-500">
@@ -2192,9 +2249,97 @@ const MainView = ({ view, pages, onPageSelect, onNewPage, onPageDelete, workspac
   );
 };
 
+// Public Note Viewer Component
+const PublicNoteViewer = ({ publicNote, isDarkMode }) => {
+  if (!publicNote) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="text-gray-500 mb-4">Loading public note...</div>
+        </div>
+      </div>
+    );
+  }
+
+  const { data, address, timestamp, publicId } = publicNote;
+  const page = data;
+
+  return (
+    <div className={`page-editor ${isDarkMode ? 'dark' : ''}`}>
+      <div className="page-header">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="text-4xl">{page.icon || '📄'}</div>
+            <div>
+              <h1 className={`page-title ${isDarkMode ? 'text-white' : 'text-gray-900'}`} style={{ fontSize: '40px', fontWeight: '700' }}>
+                {page.title || 'Untitled'}
+              </h1>
+            </div>
+          </div>
+          
+          {/* Метаданные в правом верхнем углу */}
+          <div className={`flex flex-col items-end gap-1 text-sm mr-4 mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+            <div className="flex items-center gap-1">
+              <Globe className="w-4 h-4" />
+              <span>Public Note</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <User className="w-4 h-4" />
+              <span>{address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown'}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="w-4 h-4" />
+              <span>{timestamp ? new Date(timestamp).toLocaleDateString() : 'Unknown date'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="page-content">
+        <div className="space-y-2 px-4 py-2">
+          {page.blocks && page.blocks.map((block, index) => (
+            <div key={block.id || index} className="block-container">
+              {block.type === 'text' && (
+                <p className={`text-base leading-relaxed ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</p>
+              )}
+              {block.type === 'heading1' && (
+                <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</h1>
+              )}
+              {block.type === 'heading2' && (
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</h2>
+              )}
+              {block.type === 'heading3' && (
+                <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</h3>
+              )}
+              {block.type === 'quote' && (
+                <blockquote className={`border-l-4 pl-4 italic text-base ${isDarkMode ? 'border-gray-500 text-white' : 'border-gray-400 text-gray-800'}`}>
+                  {block.content}
+                </blockquote>
+              )}
+              {block.type === 'code' && (
+                <pre className={`p-4 rounded text-sm font-mono overflow-x-auto ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                  {block.content}
+                </pre>
+              )}
+              {block.type === 'todo' && (
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" checked={block.checked} readOnly className="w-4 h-4" />
+                  <span className={block.checked ? 'line-through text-gray-500' : `${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {block.content}
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main Notion Clone Component
 export const NotionClone = () => {
-  const { pageId } = useParams();
+  const { pageId, publicId, transactionId } = useParams();
   const navigate = useNavigate();
 
   // Состояния
@@ -2211,6 +2356,11 @@ export const NotionClone = () => {
     const saved = localStorage.getItem('irysNote_darkMode');
     return saved ? JSON.parse(saved) : false;
   });
+  const [pagePrivacy, setPagePrivacy] = useState('private');
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [publicNotes, setPublicNotes] = useState([]);
+  const [currentPublicNote, setCurrentPublicNote] = useState(null);
+  const [isViewingPublic, setIsViewingPublic] = useState(false);
 
   // Обработка темы
   useEffect(() => {
@@ -2246,6 +2396,13 @@ export const NotionClone = () => {
         loadedPages = await irysService.loadPages();
       } catch (e) {
         loadedPages = null;
+      }
+      
+      // Инициализируем маппинг страниц из Irys
+      try {
+        await initializePageMapping();
+      } catch (e) {
+        console.warn('Failed to initialize page mapping:', e);
       }
       
       // Объединяем данные: mock данные + localStorage + сервер
@@ -2285,20 +2442,189 @@ export const NotionClone = () => {
 
 
 
-  // Слежение за pageId
+  // Слежение за pageId, publicId и transactionId
   useEffect(() => {
-    if (pageId && pages[pageId]) {
+    if (publicId) {
+      // Загружаем публичную заметку по transaction ID
+      setIsViewingPublic(true);
+      loadPublicNote(publicId); // publicId теперь это transaction ID
+    } else if (transactionId) {
+      // Загружаем приватную заметку по transaction ID
+      setIsViewingPublic(false);
+      loadPrivateNote(transactionId);
+    } else if (pageId && pages[pageId]) {
+      setIsViewingPublic(false);
       setCurrentPageId(pageId);
       setCurrentPage(pages[pageId]);
       setCurrentView('page');
     } else if (pageId) {
-      // Если страницы нет, сбрасываем состояние
-      setCurrentPageId(null);
-      setCurrentPage(null);
+      // Если страницы нет в локальном состоянии, пытаемся загрузить из Irys
+      setIsViewingPublic(false);
+      loadPageFromIrys(pageId);
+    }
+  }, [pageId, publicId, transactionId, pages, navigate]);
+
+  // Функция инициализации маппинга страниц
+  const initializePageMapping = async () => {
+    try {
+      console.log('🔄 Initializing page mapping from Irys...');
+      
+      // Загружаем все страницы пользователя из Irys
+      const allPages = await irysService.loadDataByWallet('page', true, true);
+      
+      if (allPages && allPages.length > 0) {
+        const pageMapping = JSON.parse(localStorage.getItem('irysNote_pageMapping') || '{}');
+        let mappingUpdated = false;
+        
+        for (const pageItem of allPages) {
+          // Ищем страницы с публичными ID
+          if (pageItem.data && pageItem.data.publicId) {
+            const publicId = pageItem.data.publicId;
+            const transactionId = pageItem.id;
+            
+            // Создаем маппинг для публичных страниц
+            if (!pageMapping[publicId]) {
+              pageMapping[publicId] = transactionId;
+              mappingUpdated = true;
+              console.log(`📝 Mapped public page: ${publicId} -> ${transactionId}`);
+            }
+          }
+        }
+        
+        if (mappingUpdated) {
+          localStorage.setItem('irysNote_pageMapping', JSON.stringify(pageMapping));
+          console.log('✅ Page mapping initialized');
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to initialize page mapping:', e);
+    }
+  };
+
+  // Функция загрузки публичной заметки
+  const loadPublicNote = async (transactionId) => {
+    try {
+      setLoading(true);
+      console.log(`🔍 Loading public note with transaction ID: ${transactionId}`);
+      const publicNote = await irysService.getPublicNoteByTransactionId(transactionId);
+      if (publicNote) {
+        setCurrentPublicNote(publicNote);
+        setCurrentView('public');
+      } else {
+        setCurrentView('home');
+        navigate('/');
+        alert('Public note not found');
+      }
+    } catch (error) {
+      console.error('Failed to load public note:', error);
       setCurrentView('home');
       navigate('/');
+      alert('Failed to load public note');
+    } finally {
+      setLoading(false);
     }
-  }, [pageId, pages, navigate]);
+  };
+
+  // Функция загрузки приватной заметки
+  const loadPrivateNote = async (transactionId) => {
+    try {
+      setLoading(true);
+      console.log(`🔍 Loading private note with transaction ID: ${transactionId}`);
+      const privateNote = await irysService.getPrivateNoteByTransactionId(transactionId);
+      
+      if (privateNote && privateNote.error) {
+        // Обработка ошибок проверки кошелька
+        if (privateNote.requiresWallet) {
+          setCurrentView('home');
+          navigate('/');
+          alert(privateNote.error + '\n\nPlease connect your wallet to access private notes.');
+          return;
+        }
+      }
+      
+      if (privateNote && privateNote.data) {
+        setCurrentPage(privateNote.data);
+        setCurrentView('page');
+      } else {
+        setCurrentView('home');
+        navigate('/');
+        alert('Private note not found');
+      }
+    } catch (error) {
+      console.error('Failed to load private note:', error);
+      setCurrentView('home');
+      navigate('/');
+      alert('Failed to load private note');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Функция загрузки страницы из Irys по ID
+  const loadPageFromIrys = async (pageId) => {
+    try {
+      setLoading(true);
+      console.log(`🔍 Loading page from Irys: ${pageId}`);
+      
+      // Проверяем маппинг между локальным ID и транзакционным ID
+      const pageMapping = JSON.parse(localStorage.getItem('irysNote_pageMapping') || '{}');
+      const transactionId = pageMapping[pageId];
+      
+      if (!transactionId) {
+        console.log(`❌ No transaction ID found for page: ${pageId}`);
+        setCurrentView('home');
+        navigate('/');
+        alert('Page not found in Irys');
+        return;
+      }
+      
+      console.log(`🔍 Using transaction ID: ${transactionId}`);
+      
+      // Пытаемся загрузить страницу из Irys по транзакционному ID
+      const pageData = await irysService.loadDataFromIrys(transactionId);
+      
+      if (pageData && pageData.blocks) {
+        // Создаем объект страницы в нужном формате
+        const loadedPage = {
+          id: pageId, // Используем локальный ID
+          title: pageData.title || 'Untitled',
+          blocks: pageData.blocks || [],
+          isFavorite: pageData.isFavorite || false,
+          icon: pageData.icon || '📄',
+          createdAt: pageData.createdAt || new Date().toISOString(),
+          updatedAt: pageData.updatedAt || new Date().toISOString(),
+          isPublic: pageData.isPublic || false,
+          publicId: pageData.publicId || null,
+          transactionId: transactionId // Сохраняем транзакционный ID
+        };
+        
+        // Добавляем страницу в локальное состояние
+        setPages(prevPages => ({
+          ...prevPages,
+          [pageId]: loadedPage
+        }));
+        
+        // Устанавливаем как текущую страницу
+        setCurrentPageId(pageId);
+        setCurrentPage(loadedPage);
+        setCurrentView('page');
+        
+        console.log(`✅ Page loaded from Irys: ${pageId} (tx: ${transactionId})`);
+      } else {
+        console.log(`❌ Page data not found in Irys: ${transactionId}`);
+        setCurrentView('home');
+        navigate('/');
+        alert('Page data not found');
+      }
+    } catch (error) {
+      console.error('Failed to load page from Irys:', error);
+      setCurrentView('home');
+      navigate('/');
+      alert('Failed to load page from Irys');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- Handlers ---
 
@@ -2503,6 +2829,13 @@ export const NotionClone = () => {
           key={currentPage.id}
           page={currentPage}
           onPageUpdate={handlePageUpdate}
+          isDarkMode={isDarkMode}
+          pagePrivacy={pagePrivacy}
+          setPagePrivacy={setPagePrivacy}
+        />
+      ) : currentView === 'public' && currentPublicNote ? (
+        <PublicNoteViewer
+          publicNote={currentPublicNote}
           isDarkMode={isDarkMode}
         />
       ) : (

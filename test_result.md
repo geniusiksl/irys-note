@@ -118,7 +118,7 @@ frontend:
         -comment: "Initial testing setup - need to verify application loads, sidebar displays, and navigation works"
         -working: false
         -agent: "testing"
-        -comment: "CRITICAL: Application fails to load due to Irys SDK compatibility issues with browser environment. The @irys/arweave package requires Node.js-specific crypto functions (generateKeyPair, createPublicKey) and stream/promises module that are not available in browser polyfills. This prevents the entire application from loading."
+        -comment: "CRITICAL: Application fails to load due to Irys SDK compatibility issues with browser environment. The Irys SDK requires Node.js-specific crypto functions (generateKeyPair, createPublicKey) and stream/promises module that are not available in browser polyfills. This prevents the entire application from loading."
 
   - task: "Block-based Editor"
     implemented: true
@@ -163,7 +163,7 @@ frontend:
         -comment: "Need to test Irys status indicator, save functionality, and auto-save"
         -working: false
         -agent: "testing"
-        -comment: "CRITICAL: Irys SDK has fundamental browser compatibility issues. The @irys/arweave package uses Node.js-specific modules (crypto.generateKeyPair, crypto.createPublicKey, stream/promises) that cannot be polyfilled for browser use. This is a blocking issue that prevents the entire application from running."
+        -comment: "CRITICAL: Irys SDK has fundamental browser compatibility issues. The Irys SDK uses Node.js-specific modules (crypto.generateKeyPair, crypto.createPublicKey, stream/promises) that cannot be polyfilled for browser use. This is a blocking issue that prevents the entire application from running."
 
   - task: "Visual Design and Responsiveness"
     implemented: true
@@ -215,4 +215,4 @@ agent_communication:
     -agent: "testing"
     -message: "Starting comprehensive testing of Notion clone application. Will test all core features including navigation, block editor, page management, Irys integration, and visual design."
     -agent: "testing"
-    -message: "CRITICAL ISSUE FOUND: Application cannot load due to Irys SDK browser compatibility problems. The @irys/arweave package requires Node.js-specific crypto functions and modules that cannot be polyfilled for browser use. This is a fundamental architectural issue that blocks all testing. Recommend either: 1) Replace Irys SDK with browser-compatible alternative, 2) Move Irys functionality to backend, or 3) Use mock implementation for frontend. Fixed webpack polyfill issues but core Irys SDK incompatibility remains."
+    -message: "CRITICAL ISSUE FOUND: Application cannot load due to Irys SDK browser compatibility problems. The Irys SDK requires Node.js-specific crypto functions and modules that cannot be polyfilled for browser use. This is a fundamental architectural issue that blocks all testing. Recommend either: 1) Replace Irys SDK with browser-compatible alternative, 2) Move Irys functionality to backend, or 3) Use mock implementation for frontend. Fixed webpack polyfill issues but core Irys SDK incompatibility remains."

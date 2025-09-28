@@ -8,6 +8,8 @@ function App() {
       <Routes>
         <Route path="/" element={<NotionClone />} />
         <Route path="/page/:pageId" element={<NotionClone />} />
+        <Route path="/public/:publicId" element={<NotionClone />} />
+        <Route path="/private/:transactionId" element={<NotionClone />} />
       </Routes>
     </BrowserRouter>
   );
