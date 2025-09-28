@@ -2386,6 +2386,9 @@ const PublicNoteViewer = ({ publicNote, isDarkMode }) => {
                     {block.items && block.items.map((item, itemIndex) => (
                       <li key={itemIndex}>{item}</li>
                     ))}
+                    {!block.items && block.content && (
+                      <li>{block.content}</li>
+                    )}
                   </ul>
                 )}
                 {block.type === 'numbered-list' && (
@@ -2393,6 +2396,9 @@ const PublicNoteViewer = ({ publicNote, isDarkMode }) => {
                     {block.items && block.items.map((item, itemIndex) => (
                       <li key={itemIndex}>{item}</li>
                     ))}
+                    {!block.items && block.content && (
+                      <li>{block.content}</li>
+                    )}
                   </ol>
                 )}
                 {block.type === 'divider' && (
@@ -2401,25 +2407,30 @@ const PublicNoteViewer = ({ publicNote, isDarkMode }) => {
                 {block.type === 'image' && (
                   <div className="my-4">
                     <img 
-                      src={block.src || block.url} 
+                      src={block.src || block.url || block.content} 
                       alt={block.alt || 'Image'} 
-                      className="max-w-full h-auto rounded"
+                      className="max-w-full h-auto rounded shadow-sm"
                       onError={(e) => {
+                        console.warn('Failed to load image:', block.src || block.url || block.content);
                         e.target.style.display = 'none';
                         e.target.nextSibling.style.display = 'block';
                       }}
+                      onLoad={() => {
+                        console.log('Image loaded successfully:', block.src || block.url || block.content);
+                      }}
                     />
-                    <div className={`p-4 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} style={{display: 'none'}}>
-                      Failed to load image
+                    <div className={`p-4 text-center border border-dashed rounded ${isDarkMode ? 'border-gray-600 text-gray-400' : 'border-gray-300 text-gray-500'}`} style={{display: 'none'}}>
+                      <p>Failed to load image</p>
+                      <p className="text-xs mt-1">URL: {block.src || block.url || block.content}</p>
                     </div>
                   </div>
                 )}
                 {block.type === 'callout' && (
                   <div className={`p-4 rounded-lg border-l-4 ${isDarkMode ? 'bg-gray-800 border-blue-500' : 'bg-blue-50 border-blue-500'}`}>
                     <div className="flex items-start gap-2">
-                      <span className="text-xl">{block.emoji || '💡'}</span>
+                      <span className="text-xl flex-shrink-0">{block.properties?.emoji || block.emoji || '💡'}</span>
                       <div className={`flex-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {block.content}
+                        {block.content || 'Callout content'}
                       </div>
                     </div>
                   </div>
@@ -2503,8 +2514,25 @@ const PublicNoteViewer = ({ publicNote, isDarkMode }) => {
                     
                   </div>
                 )}
+                {/* Поддержка bulletList */}
+                {block.type === 'bulletList' && (
+                  <ul className={`list-disc list-inside space-y-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <li>{block.content}</li>
+                  </ul>
+                )}
+                
+                {/* Поддержка todoList */}
+                {block.type === 'todoList' && (
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" checked={block.properties?.checked || false} readOnly className="w-4 h-4" />
+                    <span className={block.properties?.checked ? 'line-through text-gray-500' : `${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {block.content}
+                    </span>
+                  </div>
+                )}
+                
                 {/* Fallback для неизвестных типов блоков */}
-                {!['text', 'paragraph', 'heading1', 'heading2', 'heading3', 'quote', 'code', 'todo', 'list', 'numbered-list', 'divider', 'image', 'callout', 'emoji', 'database'].includes(block.type) && (
+                {!['text', 'paragraph', 'heading1', 'heading2', 'heading3', 'quote', 'code', 'todo', 'list', 'numbered-list', 'divider', 'image', 'callout', 'emoji', 'database', 'bulletList', 'todoList'].includes(block.type) && (
                   <div className={`p-2 border rounded ${isDarkMode ? 'border-gray-600 bg-gray-800 text-white' : 'border-gray-300 bg-gray-100 text-gray-900'}`}>
                     <p className="text-sm text-gray-500">Unknown block type: {block.type}</p>
                     <p className="text-base">{block.content}</p>
