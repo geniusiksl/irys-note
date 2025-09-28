@@ -783,7 +783,9 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
       if (!content.trim()) {
         deleteBlock(block.id);
       }
-      insertBlock(block.id, 'database');
+      // Создаем новый блок database с уникальным tableId
+      const tableId = `table_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      insertBlock(block.id, 'database', { tableId });
       setContent(''); // Очищаем содержимое блока, чтобы / исчезал
       setEditingBlock(null); // Завершаем редактирование сразу
       return;
@@ -1020,7 +1022,7 @@ const Block = ({ block, updateBlock, deleteBlock, insertBlock, isEditing, setEdi
           </div>
         );
       case 'database':
-        return <EditableTable tableId={block.id} isDarkMode={isDarkMode} />;
+        return <EditableTable tableId={block.properties?.tableId || block.id} isDarkMode={isDarkMode} blockId={block.id} />;
       case 'paragraph':
         return (
           <div className={`${baseClasses}`} onClick={handleClick} title="Click to edit block">
@@ -1768,12 +1770,12 @@ const PageEditor = ({ page, onPageUpdate, isDarkMode, pagePrivacy, setPagePrivac
     setSaveStatus('unsaved');
   };
 
-  const insertBlock = (afterBlockId, type = 'paragraph') => {
+  const insertBlock = (afterBlockId, type = 'paragraph', additionalProperties = {}) => {
     const newBlock = {
       id: uuidv4(),
       type,
       content: '',
-      properties: {}
+      properties: additionalProperties
     };
     
     const afterIndex = currentBlocks.findIndex(block => block.id === afterBlockId);
@@ -1841,6 +1843,44 @@ const PageEditor = ({ page, onPageUpdate, isDarkMode, pagePrivacy, setPagePrivac
 
 
 
+  // Функция для обогащения страницы данными таблиц из localStorage
+  const enrichPageWithTableData = async (page) => {
+    const enrichedBlocks = await Promise.all(
+      (page.blocks || []).map(async (block) => {
+        if (block.type === 'database') {
+          // Ищем данные таблицы в localStorage
+          const tableId = block.properties?.tableId || block.id;
+          const tableDataKey = `irysNote_database_${tableId}`;
+          const tableData = localStorage.getItem(tableDataKey);
+          
+          if (tableData) {
+            try {
+              const parsedTableData = JSON.parse(tableData);
+              
+              return {
+                ...block,
+                tableData: {
+                  id: parsedTableData.id,
+                  title: parsedTableData.title,
+                  columns: parsedTableData.columns || [],
+                  rows: parsedTableData.rows || []
+                }
+              };
+            } catch (e) {
+              console.warn(`Failed to parse table data for ${tableId}:`, e);
+            }
+          }
+        }
+        return block;
+      })
+    );
+    
+    return {
+      ...page,
+      blocks: enrichedBlocks
+    };
+  };
+
   const handleManualSave = async (privacy = 'private') => {
     if (!walletStatus?.connected) {
       alert('Please connect your wallet first to save to Irys');
@@ -1849,7 +1889,10 @@ const PageEditor = ({ page, onPageUpdate, isDarkMode, pagePrivacy, setPagePrivac
     
     setSaveStatus('saving');
     try {
-      const result = await irysService.savePage(page, privacy);
+      // Обогащаем блоки database данными из localStorage
+      const enrichedPage = await enrichPageWithTableData(page);
+      
+      const result = await irysService.savePage(enrichedPage, privacy);
       console.log('Page manually saved to Irys:', result);
       setSaveStatus('saved');
       setLastSaved(new Date().toLocaleTimeString());
@@ -1942,7 +1985,7 @@ const PageEditor = ({ page, onPageUpdate, isDarkMode, pagePrivacy, setPagePrivac
               
               {/* Privacy Toggle */}
               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                <button
+              <button
                   onClick={() => setPagePrivacy('private')}
                   className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
                     pagePrivacy === 'private' 
@@ -2297,40 +2340,185 @@ const PublicNoteViewer = ({ publicNote, isDarkMode }) => {
       
       <div className="page-content">
         <div className="space-y-2 px-4 py-2">
-          {page.blocks && page.blocks.map((block, index) => (
-            <div key={block.id || index} className="block-container">
-              {block.type === 'text' && (
-                <p className={`text-base leading-relaxed ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</p>
-              )}
-              {block.type === 'heading1' && (
-                <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</h1>
-              )}
-              {block.type === 'heading2' && (
-                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</h2>
-              )}
-              {block.type === 'heading3' && (
-                <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</h3>
-              )}
-              {block.type === 'quote' && (
-                <blockquote className={`border-l-4 pl-4 italic text-base ${isDarkMode ? 'border-gray-500 text-white' : 'border-gray-400 text-gray-800'}`}>
-                  {block.content}
-                </blockquote>
-              )}
-              {block.type === 'code' && (
-                <pre className={`p-4 rounded text-sm font-mono overflow-x-auto ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-900'}`}>
-                  {block.content}
-                </pre>
-              )}
-              {block.type === 'todo' && (
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" checked={block.checked} readOnly className="w-4 h-4" />
-                  <span className={block.checked ? 'line-through text-gray-500' : `${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          {/* Отладочная информация */}
+          {console.log('🔍 Debug - page.blocks:', page.blocks)}
+          {console.log('🔍 Debug - page.blocks length:', page.blocks?.length)}
+          {page.blocks && page.blocks.length > 0 ? (
+            page.blocks.map((block, index) => {
+              console.log(`🔍 Debug - block ${index}:`, block);
+              return (
+              <div key={block.id || index} className="block-container">
+                {block.type === 'text' && (
+                  <p className={`text-base leading-relaxed ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</p>
+                )}
+                {block.type === 'paragraph' && (
+                  <p className={`text-base leading-relaxed ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</p>
+                )}
+                {block.type === 'heading1' && (
+                  <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</h1>
+                )}
+                {block.type === 'heading2' && (
+                  <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</h2>
+                )}
+                {block.type === 'heading3' && (
+                  <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{block.content}</h3>
+                )}
+                {block.type === 'quote' && (
+                  <blockquote className={`border-l-4 pl-4 italic text-base ${isDarkMode ? 'border-gray-500 text-white' : 'border-gray-400 text-gray-800'}`}>
                     {block.content}
-                  </span>
-                </div>
-              )}
+                  </blockquote>
+                )}
+                {block.type === 'code' && (
+                  <pre className={`p-4 rounded text-sm font-mono overflow-x-auto ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-900'}`}>
+                    {block.content}
+                  </pre>
+                )}
+                {block.type === 'todo' && (
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" checked={block.checked} readOnly className="w-4 h-4" />
+                    <span className={block.checked ? 'line-through text-gray-500' : `${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {block.content}
+                    </span>
+                  </div>
+                )}
+                {block.type === 'list' && (
+                  <ul className={`list-disc list-inside space-y-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {block.items && block.items.map((item, itemIndex) => (
+                      <li key={itemIndex}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+                {block.type === 'numbered-list' && (
+                  <ol className={`list-decimal list-inside space-y-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {block.items && block.items.map((item, itemIndex) => (
+                      <li key={itemIndex}>{item}</li>
+                    ))}
+                  </ol>
+                )}
+                {block.type === 'divider' && (
+                  <hr className={`my-4 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`} />
+                )}
+                {block.type === 'image' && (
+                  <div className="my-4">
+                    <img 
+                      src={block.src || block.url} 
+                      alt={block.alt || 'Image'} 
+                      className="max-w-full h-auto rounded"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'block';
+                      }}
+                    />
+                    <div className={`p-4 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`} style={{display: 'none'}}>
+                      Failed to load image
+                    </div>
+                  </div>
+                )}
+                {block.type === 'callout' && (
+                  <div className={`p-4 rounded-lg border-l-4 ${isDarkMode ? 'bg-gray-800 border-blue-500' : 'bg-blue-50 border-blue-500'}`}>
+                    <div className="flex items-start gap-2">
+                      <span className="text-xl">{block.emoji || '💡'}</span>
+                      <div className={`flex-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {block.content}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {block.type === 'emoji' && (
+                  <div className="text-center my-4">
+                    <span className="text-4xl">{block.content || block.emoji}</span>
+                  </div>
+                )}
+                {block.type === 'database' && (
+                  <div className="my-4">
+                    <h3 className={`text-lg font-semibold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                      {block.tableData?.title || block.title || 'Table'}
+                    </h3>
+                    
+                    {/* Проверяем все возможные структуры данных таблицы */}
+                    {(() => {
+                      // Пытаемся найти данные таблицы в разных местах
+                      const tableData = block.tableData || block.data || block;
+                      const columns = tableData?.columns || block.columns || [];
+                      const rows = tableData?.rows || block.rows || [];
+                      
+                      
+                      if (columns.length > 0 && rows.length > 0) {
+                        return (
+                          <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
+                            <table className={`min-w-full border-collapse ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                              <thead>
+                                <tr className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+                                  {columns.map((column, colIndex) => (
+                                    <th key={colIndex} className={`px-4 py-3 text-left font-semibold border-b border-r border-gray-300 first:rounded-tl-lg last:rounded-tr-lg last:border-r-0 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
+                                      {column.name || column.title || `Column ${colIndex + 1}`}
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {rows.map((row, rowIndex) => (
+                                  <tr key={rowIndex} className={`${rowIndex % 2 === 0 ? (isDarkMode ? 'bg-gray-800' : 'bg-white') : (isDarkMode ? 'bg-gray-700' : 'bg-gray-50')} hover:${isDarkMode ? 'bg-gray-600' : 'bg-gray-100'}`}>
+                                    {columns.map((column, colIndex) => (
+                                      <td key={colIndex} className={`px-4 py-3 border-b border-r border-gray-300 last:border-r-0 ${isDarkMode ? 'border-gray-600' : 'border-gray-300'} ${rowIndex === rows.length - 1 ? 'last:rounded-bl-lg last:rounded-br-lg' : ''}`}>
+                                        <div className="flex items-center gap-2">
+                                          {/* Показываем эмодзи если есть */}
+                                          {row.emoji && (
+                                            <span className="text-lg flex-shrink-0">{row.emoji}</span>
+                                          )}
+                                          <span className="flex-1">
+                                            {(() => {
+                                              // Пытаемся найти значение ячейки в разных форматах
+                                              if (row.values) {
+                                                return row.values[column.id] || row.values[column.name] || '';
+                                              } else if (row[column.id]) {
+                                                return row[column.id];
+                                              } else if (row[column.name]) {
+                                                return row[column.name];
+                                              } else if (row[colIndex] !== undefined) {
+                                                return row[colIndex];
+                                              }
+                                              return '';
+                                            })()}
+                                          </span>
+                                        </div>
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className={`p-4 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            <p>No table data found</p>
+                            <p className="text-sm mt-2">This table block exists but contains no data</p>
+                            <p className="text-xs mt-1">Columns: {columns.length}, Rows: {rows.length}</p>
+                          </div>
+                        );
+                      }
+                    })()}
+                    
+                  </div>
+                )}
+                {/* Fallback для неизвестных типов блоков */}
+                {!['text', 'paragraph', 'heading1', 'heading2', 'heading3', 'quote', 'code', 'todo', 'list', 'numbered-list', 'divider', 'image', 'callout', 'emoji', 'database'].includes(block.type) && (
+                  <div className={`p-2 border rounded ${isDarkMode ? 'border-gray-600 bg-gray-800 text-white' : 'border-gray-300 bg-gray-100 text-gray-900'}`}>
+                    <p className="text-sm text-gray-500">Unknown block type: {block.type}</p>
+                    <p className="text-base">{block.content}</p>
+                  </div>
+                )}
+              </div>
+              );
+            })
+          ) : (
+            <div className={`p-4 text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p>No content blocks found</p>
+              <p className="text-sm mt-2">Debug info: page.blocks = {JSON.stringify(page.blocks)}</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
@@ -2511,8 +2699,8 @@ export const NotionClone = () => {
         setCurrentPublicNote(publicNote);
         setCurrentView('public');
       } else {
-        setCurrentView('home');
-        navigate('/');
+      setCurrentView('home');
+      navigate('/');
         alert('Public note not found');
       }
     } catch (error) {
@@ -2874,8 +3062,8 @@ const COLUMN_TYPES = [
   { type: 'email', label: 'Email' },
 ];
 
-function EditableTable({ tableId = null, isDarkMode = false }) {
-  // Генерируем уникальный ID для каждой новой таблицы
+function EditableTable({ tableId = null, isDarkMode = false, blockId = null }) {
+  // Используем tableId из свойств блока или генерируем новый
   const [currentTableId] = useState(tableId || `table_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [title, setTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
